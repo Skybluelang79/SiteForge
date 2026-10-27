@@ -1,0 +1,87 @@
+<div class="login-page">
+  <section class="visual">
+    <div class="visual-inner">
+      <div class="brand">
+        <span class="mark">SF</span>
+        <span>SiteForge</span>
+      </div>
+      <h1>Build with clarity.<br />Deliver with confidence.</h1>
+      <p>
+        One operating system for projects, field teams, documents, quality, and commercial control —
+        from mobilisation to closeout.
+      </p>
+      <div class="stats">
+        <div><strong>360°</strong><span>Project visibility</span></div>
+        <div><strong>12</strong><span>Operational modules</span></div>
+        <div><strong>1</strong><span>Source of truth</span></div>
+      </div>
+    </div>
+    <div class="grid-lines" aria-hidden="true"></div>
+  </section>
+
+  <section class="form-side">
+    <div class="form-card">
+      <p class="eyebrow">{{ mfaStep() ? 'Two-factor authentication' : 'Welcome back' }}</p>
+      <h2>{{ mfaStep() ? 'Enter your code' : 'Sign in to SiteForge' }}</h2>
+      <p class="lede">
+        @if (mfaStep()) {
+          Open your authenticator app and enter the six-digit code for your account.
+        } @else {
+          Use your workspace credentials to continue.
+        }
+      </p>
+
+      @if (!mfaStep()) {
+        <form (submit)="submit(emailInput.value, passwordInput.value); $event.preventDefault()">
+          <label>
+            <span>Email address</span>
+            <input #emailInput type="email" name="email" autocomplete="username" placeholder="you@company.com" />
+          </label>
+          <label>
+            <span>Password</span>
+            <input
+              #passwordInput
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="••••••••••"
+            />
+          </label>
+          @if (error()) {
+            <div class="alert">{{ error() }}</div>
+          }
+          <button class="primary" type="submit" [disabled]="loading()">
+            {{ loading() ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </form>
+      } @else {
+        <form (submit)="verify(codeInput.value); $event.preventDefault()">
+          <label>
+            <span>Authenticator code</span>
+            <input
+              #codeInput
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="12"
+              placeholder="000000"
+              class="code"
+            />
+          </label>
+          @if (error()) {
+            <div class="alert">{{ error() }}</div>
+          }
+          <button class="primary" type="submit" [disabled]="loading()">
+            {{ loading() ? 'Verifying…' : 'Verify and continue' }}
+          </button>
+          <button class="secondary" type="button" (click)="back()">Back to sign in</button>
+        </form>
+      }
+
+      <div class="demo">
+        <strong>Demo workspace</strong>
+        <span>owner@demo.siteforge.test · DemoPass123!</span>
+      </div>
+    </div>
+  </section>
+</div>

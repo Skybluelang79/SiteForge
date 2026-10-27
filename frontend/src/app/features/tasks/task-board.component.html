@@ -1,0 +1,90 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Delivery</p>
+    <h1>Task board</h1>
+    <p class="sub">Drag tasks between columns to update status.</p>
+  </div>
+  <div class="header-actions">
+    <a routerLink="/tasks" class="btn ghost">List view</a>
+    <button class="btn primary" type="button" (click)="openForm()" [disabled]="!auth.activeProjectId()">+ New task</button>
+  </div>
+</header>
+
+@if (!auth.activeProjectId()) {
+  <div class="alert">Select an active project in the top bar to see tasks.</div>
+} @else {
+  @if (error()) { <div class="alert">{{ error() }}</div> }
+  <div class="board">
+    @for (column of columns; track column.key) {
+      <section class="column" (dragover)="onDragOver($event)" (drop)="onDrop(column.key)">
+        <header>
+          <div>
+            <h2>{{ column.label }}</h2>
+            <span>{{ tasksFor(column.key).length }}</span>
+          </div>
+        </header>
+        <div class="column-body">
+          @if (loading()) {
+            @for (item of [1,2,3]; track item) {
+              <article class="card skeleton"></article>
+            }
+          }
+          @for (task of tasksFor(column.key); track task.id) {
+            <article class="card" draggable="true" (dragstart)="onDragStart(task)">
+              <header>
+                <strong>{{ task.title }}</strong>
+                <span class="priority" [attr.data-priority]="task.priority">{{ task.priority }}</span>
+              </header>
+              @if (task.description) { <p>{{ task.description }}</p> }
+              <footer>
+                <span>{{ assigneeName(task) }}</span>
+                @if (task.due_date) { <time>{{ task.due_date | date:'MMM d' }}</time> }
+              </footer>
+            </article>
+          }
+          @if (!loading() && tasksFor(column.key).length === 0) {
+            <div class="empty">No tasks</div>
+          }
+        </div>
+      </section>
+    }
+  </div>
+}
+
+@if (showForm()) {
+  <div class="overlay" (click)="closeForm()" tabindex="0" (keydown.escape)="closeForm()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <header>
+        <div>
+          <p class="eyebrow">New task</p>
+          <h2>Create task</h2>
+        </div>
+        <button class="icon-btn" type="button" (click)="closeForm()">×</button>
+      </header>
+      <form (submit)="create(); $event.preventDefault()">
+        <label>
+          <span>Title <b>*</b></span>
+          <input [value]="formTitle()" (input)="formTitle.set($any($event.target).value)" />
+        </label>
+        <label>
+          <span>Priority</span>
+          <select [value]="formPriority()" (change)="formPriority.set($any($event.target).value)">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </label>
+        <label>
+          <span>Due date</span>
+          <input type="date" [value]="formDue()" (input)="formDue.set($any($event.target).value)" />
+        </label>
+        @if (formError()) { <div class="alert">{{ formError() }}</div> }
+        <footer>
+          <button class="btn ghost" type="button" (click)="closeForm()">Cancel</button>
+          <button class="btn primary" type="submit" [disabled]="saving()">{{ saving() ? 'Creating…' : 'Create' }}</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+}

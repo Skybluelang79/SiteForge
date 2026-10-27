@@ -1,0 +1,93 @@
+@if (loading()) {
+  <div class="loading">Loading submittal…</div>
+} @else if (error()) {
+  <div class="alert">{{ error() }} <a routerLink="/rfis" class="link">Back to RFIs</a></div>
+} @else if (submittal(); as submittal) {
+  <header class="page-header">
+    <div>
+      <a routerLink="/rfis" class="back">← RFIs</a>
+      <div class="title-row">
+        <h1>{{ submittal.number }} Rev {{ submittal.revision }} — {{ submittal.title }}</h1>
+        <span class="chip" [attr.data-status]="submittal.status">{{ submittal.status.replaceAll('_', ' ') }}</span>
+        <span class="chip subtle">{{ submittal.submittal_type }}</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" (click)="submit()" [disabled]="actionLoading() || submittal.status !== 'draft'">Submit for review</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Details</h2>
+      @if (submittal.description) { <p class="body">{{ submittal.description }}</p> }
+      <div class="meta-grid">
+        <div><span>Submitted by</span><strong>{{ displayUser(submittal.submitted_by) }}</strong></div>
+        <div><span>Reviewer</span><strong>{{ displayUser(submittal.reviewer) }}</strong></div>
+        <div><span>Spec section</span><strong>{{ submittal.spec_section || '—' }}</strong></div>
+        <div><span>Due date</span><strong>{{ submittal.due_date ? (submittal.due_date | date:'mediumDate') : '—' }}</strong></div>
+        <div><span>Submitted</span><strong>{{ submittal.submitted_at ? (submittal.submitted_at | date:'medium') : '—' }}</strong></div>
+        <div><span>Reviewed</span><strong>{{ submittal.reviewed_at ? (submittal.reviewed_at | date:'medium') : '—' }}</strong></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Review decision</h2>
+      <div class="decision-form">
+        <select [(ngModel)]="decision">
+          <option value="approved">Approved</option>
+          <option value="approved_as_noted">Approved as noted</option>
+          <option value="revise_and_resubmit">Revise and resubmit</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <textarea [(ngModel)]="comments" rows="3" placeholder="Review comments…"></textarea>
+        <button type="button" (click)="approve()" [disabled]="actionLoading()">Record decision</button>
+        @if (actionError()) { <div class="error">{{ actionError() }}</div> }
+      </div>
+      <div class="approvals">
+        <h3>Approval history</h3>
+        @if (!(submittal.approvals?.length)) {
+          <div class="empty">No decisions yet.</div>
+        } @else {
+          @for (approval of submittal.approvals; track approval.id) {
+            <article class="approval">
+              <header>
+                <strong>{{ displayUser(approval.approver) }}</strong>
+                <span class="chip" [attr.data-status]="approval.decision">{{ approval.decision.replaceAll('_', ' ') }}</span>
+              </header>
+              @if (approval.comments) { <p>{{ approval.comments }}</p> }
+              @if (approval.decided_at) { <time>{{ approval.decided_at | date:'short' }}</time> }
+            </article>
+          }
+        }
+      </div>
+    </section>
+
+    <section class="panel full">
+      <header class="panel-header">
+        <h2>Submittal items</h2>
+        <span>{{ (submittal.items?.length || 0) }} items</span>
+      </header>
+      <div class="item-form">
+        <input [(ngModel)]="itemDesc" placeholder="Item description" />
+        <input [(ngModel)]="itemSpec" placeholder="Spec reference (optional)" />
+        <button type="button" (click)="addItem()" [disabled]="actionLoading() || !itemDesc().trim()">Add item</button>
+      </div>
+      <div class="items">
+        @if (!(submittal.items?.length)) {
+          <div class="empty">No items added.</div>
+        } @else {
+          @for (item of submittal.items; track item.id) {
+            <article class="item">
+              <div>
+                <strong>{{ item.description }}</strong>
+                @if (item.spec_reference) { <span class="spec">{{ item.spec_reference }}</span> }
+              </div>
+              <span class="chip subtle">{{ item.status.replaceAll('_', ' ') }}</span>
+            </article>
+          }
+        }
+      </div>
+    </section>
+  </div>
+}

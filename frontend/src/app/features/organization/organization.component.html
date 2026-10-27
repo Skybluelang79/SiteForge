@@ -1,0 +1,73 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Workspace</p>
+    <h1>Organization</h1>
+    <p class="sub">{{ auth.organizationName() }}</p>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button [class.active]="tab() === 'members'" (click)="tab.set('members')">Members</button>
+  <button [class.active]="tab() === 'invitations'" (click)="tab.set('invitations')">Invitations</button>
+</nav>
+
+@if (error()) { <div class="alert">{{ error() }}</div> }
+
+@if (tab() === 'members') {
+  <div class="card">
+    <table>
+      <thead><tr><th>Member</th><th>Email</th><th>Role</th><th>Title</th></tr></thead>
+      <tbody>
+        @for (member of members(); track member['id']) {
+          <tr>
+            <td>{{ member['user'] && ($any(member['user'])['first_name'] || '') }} {{ member['user'] && ($any(member['user'])['last_name'] || '') }}</td>
+            <td>{{ member['user'] && $any(member['user'])['email'] }}</td>
+            <td>{{ member['role_code'] }}</td>
+            <td>{{ member['title'] || '—' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  <div class="grid">
+    <section class="card">
+      <h2>Invite member</h2>
+      <form class="invite-form" (submit)="invite(); $event.preventDefault()">
+        <label>
+          <span>Email</span>
+          <input type="email" [value]="inviteEmail()" (input)="inviteEmail.set($any($event.target).value)" />
+        </label>
+        <label>
+          <span>Role</span>
+          <select [value]="inviteRole()" (change)="inviteRole.set($any($event.target).value)">
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+            <option value="owner">Owner</option>
+            <option value="viewer">Viewer</option>
+          </select>
+        </label>
+        @if (inviteError()) { <div class="alert">{{ inviteError() }}</div> }
+        @if (inviteSuccess()) { <div class="success">Invitation sent.</div> }
+        <button class="btn primary" type="submit" [disabled]="inviting()">Send invite</button>
+      </form>
+    </section>
+    <section class="card">
+      <h2>Pending invitations</h2>
+      <table>
+        <thead><tr><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          @for (inv of invitations(); track inv['id']) {
+            <tr>
+              <td>{{ inv['email'] }}</td>
+              <td>{{ inv['role_code'] }}</td>
+              <td>{{ inv['status'] }}</td>
+              <td>@if (inv['status'] === 'pending') { <button class="link" (click)="revoke(inv)">Revoke</button> }</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (!invitations().length) { <div class="empty">No invitations</div> }
+    </section>
+  </div>
+}

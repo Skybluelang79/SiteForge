@@ -1,0 +1,139 @@
+<section class="head">
+  <div>
+    <p class="eyebrow">Command center · {{ todayLabel }}</p>
+    <h1>Good day, {{ firstName() }}.</h1>
+    <p class="sub">Here is where {{ auth.organizationName() }} stands across active delivery.</p>
+  </div>
+  <div class="head-actions">
+    <a class="btn ghost" routerLink="/projects">View projects</a>
+    <a class="btn primary" routerLink="/tasks">Open tasks</a>
+  </div>
+</section>
+
+@if (error()) {
+  <div class="alert">{{ error() }} <button class="link" type="button" (click)="load()">Retry</button></div>
+}
+
+@if (loading()) {
+  <div class="kpi-grid">
+    @for (item of [1, 2, 3, 4]; track item) {
+      <div class="card skeleton-card"></div>
+    }
+  </div>
+} @else if (data(); as dashboard) {
+  <div class="kpi-grid">
+    <article class="card kpi">
+      <span class="kpi-label">Active projects</span>
+      <strong>{{ number(dashboard.kpis.active_projects) }}</strong>
+      <span class="kpi-foot">{{ number(dashboard.kpis.total_projects) }} total in workspace</span>
+      <span class="kpi-icon">▦</span>
+    </article>
+    <article class="card kpi">
+      <span class="kpi-label">Open tasks</span>
+      <strong>{{ number(dashboard.kpis.open_tasks) }}</strong>
+      <span class="kpi-foot" [class.warn]="dashboard.kpis.overdue_tasks > 0">
+        {{ number(dashboard.kpis.overdue_tasks) }} overdue
+      </span>
+      <span class="kpi-icon">✓</span>
+    </article>
+    <article class="card kpi">
+      <span class="kpi-label">Open RFIs</span>
+      <strong>{{ number(dashboard.kpis.open_rfis) }}</strong>
+      <span class="kpi-foot" [class.warn]="dashboard.kpis.overdue_rfis > 0">
+        {{ number(dashboard.kpis.overdue_rfis) }} past due
+      </span>
+      <span class="kpi-icon">?</span>
+    </article>
+    <article class="card kpi">
+      <span class="kpi-label">Safety incidents · 90d</span>
+      <strong>{{ number(dashboard.kpis.safety_incidents_90d) }}</strong>
+      <span class="kpi-foot">{{ number(dashboard.kpis.open_submittals) }} open submittals</span>
+      <span class="kpi-icon">◎</span>
+    </article>
+  </div>
+
+  <div class="split">
+    <section class="card budget">
+      <header>
+        <div>
+          <p class="eyebrow">Commercial position</p>
+          <h2>Budget utilization</h2>
+        </div>
+        <a class="link" routerLink="/financials">Financials →</a>
+      </header>
+      <div class="budget-figures">
+        <div><span>Budget</span><strong>{{ money(dashboard.kpis.budgeted) }}</strong></div>
+        <div><span>Committed</span><strong>{{ money(dashboard.kpis.committed_cost) }}</strong></div>
+        <div><span>Actual</span><strong>{{ money(dashboard.kpis.actual_cost) }}</strong></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>Committed</span><b>{{ committed() }}%</b></div>
+        <div class="bar"><i class="committed" [style.width.%]="committed()"></i></div>
+        <div class="bar-label"><span>Actual cost</span><b>{{ utilization() }}%</b></div>
+        <div class="bar"><i class="actual" [style.width.%]="utilization()"></i></div>
+      </div>
+      <footer>
+        <span>Pending change orders</span>
+        <strong>{{ money(dashboard.kpis.pending_change_orders) }}</strong>
+      </footer>
+    </section>
+
+    <section class="card">
+      <header>
+        <div>
+          <p class="eyebrow">Look ahead</p>
+          <h2>Milestones due soon</h2>
+        </div>
+      </header>
+      <ul class="milestones">
+        @for (milestone of dashboard.milestones_due_soon; track milestone.id) {
+          <li>
+            <span class="date">{{ dateLabel(milestone.due_date) }}</span>
+            <span class="name">{{ milestone.name }}</span>
+            <span class="chip">{{ milestone.status.replaceAll('_', ' ') }}</span>
+          </li>
+        }
+        @if (!dashboard.milestones_due_soon.length) {
+          <li class="empty">No milestones due in the next 30 days.</li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  <section class="card projects">
+    <header>
+      <div>
+        <p class="eyebrow">Portfolio</p>
+        <h2>Projects in flight</h2>
+      </div>
+      <a class="link" routerLink="/projects">All projects →</a>
+    </header>
+    <div class="project-grid">
+      @for (project of dashboard.projects; track project.id) {
+        <a class="project-tile" [routerLink]="['/projects', project.id]">
+          <div class="project-top">
+            <span class="code">{{ project.code ?? 'PRJ' }}</span>
+            <span class="chip">{{ project.status ?? 'active' }}</span>
+          </div>
+          <strong>{{ project.name }}</strong>
+          <small>{{ project.city }}{{ project.city && project.state ? ', ' : '' }}{{ project.state }}</small>
+          <div class="progress">
+            <i [style.width.%]="project.percent_complete ?? 0"></i>
+          </div>
+          <div class="progress-label">
+            <span>Progress</span>
+            <b>{{ project.percent_complete ?? 0 }}%</b>
+          </div>
+        </a>
+      }
+      @if (!dashboard.projects.length) {
+        <p class="empty">No projects are visible for your membership yet.</p>
+      }
+    </div>
+  </section>
+} @else {
+  <div class="card empty-state">
+    <h2>Nothing to show yet</h2>
+    <p>Create or join a project to populate the dashboard.</p>
+  </div>
+}

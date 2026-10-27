@@ -1,0 +1,138 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Account</p>
+    <h1>Profile & access</h1>
+    <p class="sub">Your identity, workspace memberships, security and permissions.</p>
+  </div>
+  <button class="btn ghost" type="button" (click)="logout()">Sign out</button>
+</section>
+
+<nav class="tabs">
+  <button [class.active]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button>
+  <button [class.active]="tab() === 'security'" (click)="tab.set('security')">Security</button>
+</nav>
+
+@if (tab() === 'overview') {
+  <div class="layout">
+    <section class="card identity">
+      <div class="avatar">{{ initials() }}</div>
+      <h2>{{ name() }}</h2>
+      <p>{{ auth.user()?.email }}</p>
+      <div class="badges">
+        <span class="chip">{{ auth.user()?.mfa_enabled ? 'MFA enabled' : 'MFA not enabled' }}</span>
+        <span class="chip">{{ auth.memberships()[0]?.role_code ?? 'member' }}</span>
+      </div>
+      <dl>
+        <div><dt>Job title</dt><dd>{{ auth.user()?.title || '—' }}</dd></div>
+        <div><dt>Phone</dt><dd>{{ auth.user()?.phone || '—' }}</dd></div>
+        <div><dt>Timezone</dt><dd>{{ auth.user()?.timezone || '—' }}</dd></div>
+        <div><dt>Active organization</dt><dd>{{ auth.organizationName() }}</dd></div>
+      </dl>
+    </section>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Workspaces</h2>
+        <ul class="memberships">
+          @for (membership of auth.memberships(); track membership.id) {
+            <li [class.active]="membership.organization === auth.activeOrganizationId()">
+              <div>
+                <strong>{{ membership.organization_name }}</strong>
+                <small>{{ membership.organization_slug }} • {{ membership.role_code.replaceAll('_', ' ') }}</small>
+              </div>
+              @if (membership.organization === auth.activeOrganizationId()) {
+                <span class="chip ok">Active</span>
+              } @else {
+                <button class="link" type="button" (click)="auth.setOrganization(membership.organization)">
+                  Switch
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Effective permissions</h2>
+        <p class="hint">Derived from your role and organization membership.</p>
+        <div class="permissions">
+          @for (permission of auth.context()?.permissions ?? []; track permission) {
+            <span class="permission">{{ permissionLabel(permission) }}</span>
+          }
+          @if (!(auth.context()?.permissions ?? []).length) {
+            <p class="hint">No permissions assigned.</p>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+} @else {
+  <div class="layout single">
+    <section class="card">
+      <header class="card-header">
+        <div>
+          <h2>Multi-factor authentication</h2>
+          <p class="hint">Add an authenticator app for an extra layer of security.</p>
+        </div>
+        <span class="chip">{{ auth.user()?.mfa_enabled ? 'Enabled' : 'Disabled' }}</span>
+      </header>
+      @if (!auth.user()?.mfa_enabled) {
+        @if (!mfaSecret()) {
+          <button class="btn primary" type="button" (click)="startMfa()" [disabled]="mfaLoading()">Set up MFA</button>
+        } @else {
+          <div class="mfa-setup">
+            <div>
+              <p>Scan this URI with your authenticator app or enter the secret manually.</p>
+              <code class="secret">{{ mfaSecret() }}</code>
+              <p class="hint">otpauth URI: {{ mfaUri() }}</p>
+            </div>
+            <div class="confirm-row">
+              <input [value]="mfaCode()" (input)="mfaCode.set($any($event.target).value)" placeholder="Enter 6-digit code" />
+              <button class="btn primary" type="button" (click)="confirmMfa()" [disabled]="mfaLoading()">Confirm and enable</button>
+            </div>
+            @if (mfaError()) { <div class="alert">{{ mfaError() }}</div> }
+          </div>
+        }
+      } @else {
+        <p class="hint">MFA is enabled for your account.</p>
+      }
+      @if (showRecovery() && recoveryCodes().length) {
+        <div class="recovery">
+          <h3>Recovery codes</h3>
+          <p class="hint">Save these in a safe place. They can be used to sign in if you lose access to your authenticator app.</p>
+          <div class="codes">
+            @for (code of recoveryCodes(); track code) {
+              <code>{{ code }}</code>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    <section class="card">
+      <header class="card-header">
+        <div>
+          <h2>Change password</h2>
+          <p class="hint">Update your password regularly.</p>
+        </div>
+      </header>
+      <form class="password-form" (submit)="changePassword(); $event.preventDefault()">
+        <label>
+          <span>Current password</span>
+          <input type="password" [value]="passwordCurrent()" (input)="passwordCurrent.set($any($event.target).value)" />
+        </label>
+        <label>
+          <span>New password</span>
+          <input type="password" [value]="passwordNew()" (input)="passwordNew.set($any($event.target).value)" />
+        </label>
+        <label>
+          <span>Confirm new password</span>
+          <input type="password" [value]="passwordConfirm()" (input)="passwordConfirm.set($any($event.target).value)" />
+        </label>
+        @if (passwordError()) { <div class="alert">{{ passwordError() }}</div> }
+        @if (passwordSuccess()) { <div class="success">Password updated.</div> }
+        <button class="btn primary" type="submit" [disabled]="passwordLoading()">Update password</button>
+      </form>
+    </section>
+  </div>
+}

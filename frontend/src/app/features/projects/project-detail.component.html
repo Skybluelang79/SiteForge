@@ -1,0 +1,160 @@
+@if (loading()) {
+  <div class="loading">Loading project workspace…</div>
+} @else if (error()) {
+  <div class="alert">{{ error() }} <button class="link" type="button" (click)="load()">Retry</button></div>
+} @else if (project(); as project) {
+  <a class="back" routerLink="/projects">← All projects</a>
+
+  <section class="hero">
+    <div>
+      <div class="hero-top">
+        <span class="number">{{ project.number }}</span>
+        <span class="chip" [class]="statusClass(project.status)">{{ project.status.replaceAll('_', ' ') }}</span>
+      </div>
+      <h1>{{ project.name }}</h1>
+      <p class="location">
+        {{ project.address_line1 || project.city || 'Location not set' }}
+        @if (project.region) {, {{ project.region }}}
+        @if (project.country) {, {{ project.country }}}
+      </p>
+    </div>
+    <div class="hero-meta">
+      <div><span>Client</span><strong>{{ project.client_name || '—' }}</strong></div>
+      <div><span>Project manager</span><strong>{{ person(project.project_manager) }}</strong></div>
+      <div><span>Contract value</span><strong>{{ money(project.contract_value, project.currency) }}</strong></div>
+    </div>
+  </section>
+
+  @if (summary(); as summary) {
+    <div class="stat-grid">
+      <article class="stat">
+        <span>Team</span>
+        <strong>{{ summary.team_size }}</strong>
+        <small>active members</small>
+      </article>
+      <article class="stat">
+        <span>Open tasks</span>
+        <strong>{{ summary.tasks.open }}</strong>
+        <small [class.warn]="summary.tasks.overdue">{{ summary.tasks.overdue }} overdue</small>
+      </article>
+      <article class="stat">
+        <span>Open RFIs</span>
+        <strong>{{ summary.rfis.open }}</strong>
+        <small>{{ summary.rfis.total }} total</small>
+      </article>
+      <article class="stat">
+        <span>Milestones</span>
+        <strong>{{ summary.milestones.achieved }}/{{ summary.milestones.total }}</strong>
+        <small [class.warn]="summary.milestones.overdue">{{ summary.milestones.overdue }} overdue</small>
+      </article>
+      <article class="stat">
+        <span>Budget</span>
+        <strong>{{ money(summary.budget.budgeted) }}</strong>
+        <small>{{ money(summary.budget.actual) }} actual</small>
+      </article>
+    </div>
+  }
+
+  <nav class="tabs">
+    <button type="button" [class.active]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button>
+    <button type="button" [class.active]="tab() === 'team'" (click)="tab.set('team')">
+      Team · {{ members().length }}
+    </button>
+    <button type="button" [class.active]="tab() === 'milestones'" (click)="tab.set('milestones')">
+      Milestones · {{ milestones().length }}
+    </button>
+    <button type="button" [class.active]="tab() === 'activity'" (click)="tab.set('activity')">Activity</button>
+  </nav>
+
+  @switch (tab()) {
+    @case ('overview') {
+      <div class="panels">
+        <section class="panel">
+          <h2>Project brief</h2>
+          <p class="body">{{ project.description || 'No project description has been captured yet.' }}</p>
+          <dl>
+            <div><dt>Type</dt><dd>{{ project.project_type || '—' }}</dd></div>
+            <div><dt>Start</dt><dd>{{ date(project.start_date) }}</dd></div>
+            <div><dt>Target completion</dt><dd>{{ date(project.target_completion_date) }}</dd></div>
+            <div><dt>Visibility</dt><dd>{{ project.is_public ? 'Organization wide' : 'Restricted' }}</dd></div>
+          </dl>
+        </section>
+        <section class="panel">
+          <h2>Jump to work</h2>
+          <div class="quick">
+            <a routerLink="/tasks">Tasks <span>→</span></a>
+            <a routerLink="/rfis">RFIs <span>→</span></a>
+            <a routerLink="/documents">Documents <span>→</span></a>
+            <a routerLink="/drawings">Drawings <span>→</span></a>
+            <a routerLink="/field">Field reports <span>→</span></a>
+            <a routerLink="/quality">Quality <span>→</span></a>
+            <a routerLink="/financials">Financials <span>→</span></a>
+            <a routerLink="/reports">Reports <span>→</span></a>
+          </div>
+        </section>
+      </div>
+    }
+    @case ('team') {
+      <section class="panel">
+        <h2>Project team</h2>
+        <ul class="people">
+          @for (member of members(); track member.id) {
+            <li>
+              <span class="avatar">{{ person(member.user).slice(0, 2).toUpperCase() }}</span>
+              <span class="who">
+                <strong>{{ person(member.user) }}</strong>
+                <small>{{ member.title || member.role_code.replaceAll('_', ' ') }}</small>
+              </span>
+              <span class="chip">{{ member.role_code.replaceAll('_', ' ') }}</span>
+              <span class="status" [class.inactive]="!member.is_active">
+                {{ member.is_active ? 'Active' : 'Inactive' }}
+              </span>
+            </li>
+          }
+          @if (!members().length) {
+            <li class="empty">No team members assigned.</li>
+          }
+        </ul>
+      </section>
+    }
+    @case ('milestones') {
+      <section class="panel">
+        <h2>Schedule milestones</h2>
+        <ul class="timeline">
+          @for (milestone of milestones(); track milestone.id) {
+            <li>
+              <span class="dot" [class]="statusClass(milestone.status)"></span>
+              <span class="who">
+                <strong>{{ milestone.name }}</strong>
+                <small>Due {{ date(milestone.due_date) }}</small>
+              </span>
+              <span class="chip">{{ milestone.status.replaceAll('_', ' ') }}</span>
+            </li>
+          }
+          @if (!milestones().length) {
+            <li class="empty">No milestones on this project.</li>
+          }
+        </ul>
+      </section>
+    }
+    @case ('activity') {
+      <section class="panel">
+        <h2>Recent activity</h2>
+        <ul class="activity">
+          @for (entry of activity(); track entry.id) {
+            <li>
+              <span class="dot"></span>
+              <span>
+                <strong>{{ entry.summary || entry.verb }}</strong>
+                <small>{{ person(entry.actor) }} · {{ date(entry.created_at) }}</small>
+              </span>
+            </li>
+          }
+          @if (!activity().length) {
+            <li class="empty">No activity recorded yet.</li>
+          }
+        </ul>
+      </section>
+    }
+  }
+}

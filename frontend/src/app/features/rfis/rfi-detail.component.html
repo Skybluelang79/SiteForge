@@ -1,0 +1,84 @@
+@if (loading()) {
+  <div class="loading">Loading RFI…</div>
+} @else if (error()) {
+  <div class="alert">{{ error() }} <a routerLink="/rfis" class="link">Back to RFIs</a></div>
+} @else if (rfi(); as rfi) {
+  <header class="page-header">
+    <div>
+      <a routerLink="/rfis" class="back">← RFIs</a>
+      <div class="title-row">
+        <h1>{{ rfi.number }} — {{ rfi.subject }}</h1>
+        <span class="chip" [attr.data-status]="rfi.status">{{ rfi.status.replaceAll('_', ' ') }}</span>
+        <span class="chip subtle">{{ rfi.priority }}</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Question</h2>
+      <p class="body">{{ rfi.question }}</p>
+      <div class="meta-grid">
+        <div><span>Created by</span><strong>{{ displayUser(rfi.created_by) }}</strong></div>
+        <div><span>Assigned to</span><strong>{{ displayUser(rfi.assigned_to) }}</strong></div>
+        <div><span>Ball in court</span><strong>{{ displayUser(rfi.ball_in_court) }}</strong></div>
+        <div><span>Due date</span><strong>{{ rfi.due_date ? (rfi.due_date | date:'mediumDate') : '—' }}</strong></div>
+        <div><span>Created</span><strong>{{ rfi.created_at | date:'medium' }}</strong></div>
+        <div><span>Updated</span><strong>{{ rfi.updated_at | date:'medium' }}</strong></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Official response</h2>
+      @if (rfi.official_response) {
+        <p class="response">{{ rfi.official_response }}</p>
+        <small>Answered • Status: {{ rfi.status.replaceAll('_', ' ') }}</small>
+      } @else {
+        <p class="muted">No official response yet.</p>
+      }
+
+      <div class="response-form">
+        <h3>Respond</h3>
+        <textarea [(ngModel)]="responseBody" rows="4" placeholder="Provide the official response…"></textarea>
+        <div class="row">
+          <select [(ngModel)]="responseStatus">
+            <option value="answered">Mark as answered</option>
+            <option value="closed">Answer and close</option>
+          </select>
+          <button type="button" (click)="respond()" [disabled]="actionLoading()">Submit response</button>
+          <button type="button" class="ghost" (click)="close()" [disabled]="actionLoading()">Close without new response</button>
+        </div>
+        @if (actionError()) { <div class="error">{{ actionError() }}</div> }
+      </div>
+    </section>
+
+    <section class="panel full">
+      <header class="panel-header">
+        <h2>Comments</h2>
+        <span>{{ (rfi.comments?.length || 0) }} items</span>
+      </header>
+      <div class="comment-form">
+        <textarea [(ngModel)]="commentBody" rows="3" placeholder="Add a comment…"></textarea>
+        <button type="button" (click)="addComment()" [disabled]="actionLoading() || !commentBody().trim()">Post comment</button>
+      </div>
+      <div class="thread">
+        @if (!(rfi.comments?.length)) {
+          <div class="empty">No comments yet.</div>
+        } @else {
+          @for (comment of rfi.comments; track comment.id) {
+            <article class="comment" [class.official]="comment.is_official">
+              <header>
+                <div>
+                  <strong>{{ displayUser(comment.author) }}</strong>
+                  @if (comment.is_official) { <span class="official-badge">Official</span> }
+                </div>
+                <time>{{ comment.created_at | date:'short' }}</time>
+              </header>
+              <p>{{ comment.body }}</p>
+            </article>
+          }
+        }
+      </div>
+    </section>
+  </div>
+}

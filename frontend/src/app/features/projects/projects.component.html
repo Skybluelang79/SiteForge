@@ -1,0 +1,150 @@
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Portfolio</p>
+    <h1>Projects</h1>
+    <p class="sub">Every active and planned project in {{ auth.organizationName() }}.</p>
+  </div>
+  <button class="btn primary" type="button" (click)="openForm()">+ New project</button>
+</section>
+
+<div class="toolbar">
+  <input
+    type="search"
+    placeholder="Search project name, number or city…"
+    [value]="search()"
+    (input)="search.set($any($event.target).value)"
+  />
+  <span class="count">{{ filtered().length }} projects</span>
+</div>
+
+@if (error()) {
+  <div class="alert">{{ error() }} <button class="link" type="button" (click)="load()">Retry</button></div>
+}
+
+@if (loading()) {
+  <div class="grid">
+    @for (item of [1, 2, 3]; track item) {
+      <div class="project-card skeleton"></div>
+    }
+  </div>
+} @else {
+  <div class="grid">
+    @for (project of filtered(); track project.id) {
+      <a class="project-card" [routerLink]="['/projects', project.id]">
+        <div class="top">
+          <span class="number">{{ project.number }}</span>
+          <span class="chip" [class]="project.status">{{ project.status.replaceAll('_', ' ') }}</span>
+        </div>
+        <h2>{{ project.name }}</h2>
+        <p class="location">{{ project.city || 'Unassigned location' }}{{ project.region ? ', ' + project.region : '' }}</p>
+        <dl>
+          <div><dt>Contract</dt><dd>{{ money(project.contract_value, project.currency) }}</dd></div>
+          <div><dt>Team</dt><dd>{{ project.member_count ?? 0 }}</dd></div>
+          <div><dt>Target</dt><dd>{{ date(project.target_completion_date) }}</dd></div>
+        </dl>
+        <div class="foot">
+          <span>{{ project.project_manager?.full_name || project.project_manager?.email || 'No manager' }}</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+    }
+  </div>
+  @if (!filtered().length) {
+    <div class="empty">
+      <h2>No projects found</h2>
+      <p>Create the first project or adjust your search.</p>
+    </div>
+  }
+}
+
+@if (formOpen()) {
+  <div class="overlay" (click)="formOpen.set(false)" tabindex="0" (keydown.escape)="formOpen.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <header>
+        <div>
+          <p class="eyebrow">New project</p>
+          <h2>Set up the project</h2>
+        </div>
+        <button class="icon-btn" type="button" (click)="formOpen.set(false)">×</button>
+      </header>
+      <form (submit)="save(); $event.preventDefault()">
+        <div class="two">
+          <label>
+            <span>Project name *</span>
+            <input
+              type="text"
+              [value]="draft().name"
+              (input)="setDraft('name', $any($event.target).value)"
+              placeholder="Harbor Point Tower"
+            />
+          </label>
+          <label>
+            <span>Project number *</span>
+            <input
+              type="text"
+              [value]="draft().number"
+              (input)="setDraft('number', $any($event.target).value)"
+              placeholder="HPT-2026"
+            />
+          </label>
+        </div>
+        <div class="two">
+          <label>
+            <span>City</span>
+            <input type="text" [value]="draft().city" (input)="setDraft('city', $any($event.target).value)" />
+          </label>
+          <label>
+            <span>Region / state</span>
+            <input type="text" [value]="draft().region" (input)="setDraft('region', $any($event.target).value)" />
+          </label>
+        </div>
+        <div class="two">
+          <label>
+            <span>Start date</span>
+            <input
+              type="date"
+              [value]="draft().start_date"
+              (input)="setDraft('start_date', $any($event.target).value)"
+            />
+          </label>
+          <label>
+            <span>Target completion</span>
+            <input
+              type="date"
+              [value]="draft().target_completion_date"
+              (input)="setDraft('target_completion_date', $any($event.target).value)"
+            />
+          </label>
+        </div>
+        <div class="two">
+          <label>
+            <span>Contract value</span>
+            <input
+              type="number"
+              [value]="draft().contract_value"
+              (input)="setDraft('contract_value', $any($event.target).value)"
+              placeholder="0"
+            />
+          </label>
+          <label>
+            <span>Client</span>
+            <input
+              type="text"
+              [value]="draft().client_name"
+              (input)="setDraft('client_name', $any($event.target).value)"
+            />
+          </label>
+        </div>
+        @if (formError()) {
+          <div class="alert">{{ formError() }}</div>
+        }
+        <footer>
+          <button class="btn ghost" type="button" (click)="formOpen.set(false)">Cancel</button>
+          <button class="btn primary" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Creating…' : 'Create project' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+}

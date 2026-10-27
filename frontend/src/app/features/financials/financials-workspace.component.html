@@ -1,0 +1,116 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Commercial</p>
+    <h1>Financials workspace</h1>
+    <p class="sub">Budgets, commitments, POs, invoices and change orders.</p>
+  </div>
+</header>
+
+@if (!auth.activeProjectId()) {
+  <div class="alert">Select an active project in the top bar.</div>
+} @else {
+  <nav class="tabs">
+    <button [class.active]="tab() === 'cost-codes'" (click)="tab.set('cost-codes')">Cost codes</button>
+    <button [class.active]="tab() === 'budgets'" (click)="tab.set('budgets')">Budgets</button>
+    <button [class.active]="tab() === 'commitments'" (click)="tab.set('commitments')">Commitments</button>
+    <button [class.active]="tab() === 'pos'" (click)="tab.set('pos')">Purchase orders</button>
+    <button [class.active]="tab() === 'invoices'" (click)="tab.set('invoices')">Invoices</button>
+    <button [class.active]="tab() === 'change-orders'" (click)="tab.set('change-orders')">Change orders</button>
+  </nav>
+
+  @if (error()) { <div class="alert">{{ error() }}</div> }
+
+  <div class="table-card">
+    @if (tab() === 'cost-codes') {
+      <table>
+        <thead><tr><th>Code</th><th>Name</th><th>Active</th></tr></thead>
+        <tbody>
+          @for (item of items(); track item['id']) {
+            <tr><td>{{ item['code'] }}</td><td>{{ item['name'] }}</td><td>{{ item['is_active'] ? 'Yes' : 'No' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    } @else if (tab() === 'budgets') {
+      <table>
+        <thead><tr><th>Name</th><th>Version</th><th>Status</th><th>Total budgeted</th></tr></thead>
+        <tbody>
+          @for (item of items(); track item['id']) {
+            <tr><td>{{ item['name'] }}</td><td>{{ item['version'] }}</td><td>{{ item['status'] }}</td><td>{{ money(item['total_budgeted']) }}</td></tr>
+          }
+        </tbody>
+      </table>
+    } @else if (tab() === 'commitments') {
+      <table>
+        <thead><tr><th>Number</th><th>Title</th><th>Vendor</th><th>Status</th><th>Original</th><th></th></tr></thead>
+        <tbody>
+          @for (item of items(); track item['id']) {
+            <tr>
+              <td>{{ item['number'] }}</td>
+              <td>{{ item['title'] }}</td>
+              <td>{{ item['vendor_name'] }}</td>
+              <td>{{ item['status'] }}</td>
+              <td>{{ money(item['original_amount']) }}</td>
+              <td><button class="link" (click)="approve(item)" [disabled]="actionLoading() || item['status'] === 'approved'">Approve</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (tab() === 'pos') {
+      <table>
+        <thead><tr><th>Number</th><th>Title</th><th>Vendor</th><th>Status</th><th>Total</th><th></th></tr></thead>
+        <tbody>
+          @for (item of items(); track item['id']) {
+            <tr>
+              <td>{{ item['number'] }}</td>
+              <td>{{ item['title'] }}</td>
+              <td>{{ item['vendor_name'] }}</td>
+              <td>{{ item['status'] }}</td>
+              <td>{{ money(item['total_amount']) }}</td>
+              <td><button class="link" (click)="approve(item)" [disabled]="actionLoading() || item['status'] === 'approved'">Approve</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (tab() === 'invoices') {
+      <table>
+        <thead><tr><th>Number</th><th>Vendor</th><th>Status</th><th>Net payable</th><th>Paid</th><th></th></tr></thead>
+        <tbody>
+          @for (item of items(); track item['id']) {
+            <tr>
+              <td>{{ item['number'] }}</td>
+              <td>{{ item['vendor_name'] }}</td>
+              <td>{{ item['status'] }}</td>
+              <td>{{ money(item['net_payable']) }}</td>
+              <td>{{ money(item['paid_amount']) }}</td>
+              <td class="actions">
+                <button class="link" (click)="approve(item)" [disabled]="actionLoading() || item['status'] === 'approved' || item['status'] === 'paid'">Approve</button>
+                <button class="link" (click)="payInvoice(item)" [disabled]="actionLoading() || item['status'] === 'paid'">Mark paid</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (tab() === 'change-orders') {
+      <table>
+        <thead><tr><th>Number</th><th>Title</th><th>Status</th><th>Amount</th><th></th></tr></thead>
+        <tbody>
+          @for (item of items(); track item['id']) {
+            <tr>
+              <td>{{ item['number'] }}</td>
+              <td>{{ item['title'] }}</td>
+              <td>{{ item['status'] }}</td>
+              <td>{{ money(item['amount']) }}</td>
+              <td class="actions">
+                <button class="link" (click)="submitCo(item)" [disabled]="actionLoading() || item['status'] !== 'draft'">Submit</button>
+                <button class="link" (click)="approve(item)" [disabled]="actionLoading() || item['status'] !== 'pending'">Approve</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+    @if (!loading() && items().length === 0) {
+      <div class="empty">No records</div>
+    }
+  </div>
+}

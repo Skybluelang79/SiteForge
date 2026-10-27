@@ -1,0 +1,116 @@
+@if (loading()) {
+  <div class="loading">Loading daily log…</div>
+} @else if (error()) {
+  <div class="alert">{{ error() }} <a routerLink="/field" class="link">Back to Field</a></div>
+} @else if (log(); as log) {
+  <header class="page-header">
+    <div>
+      <a routerLink="/field" class="back">← Field operations</a>
+      <div class="title-row">
+        <h1>Daily log — {{ log.log_date | date:'mediumDate' }}</h1>
+        <span class="chip" [attr.data-status]="log.status">{{ log.status.replaceAll('_', ' ') }}</span>
+      </div>
+    </div>
+    <div class="actions">
+      @if (log.status === 'draft' || log.status === 'rejected') {
+        <button type="button" (click)="submit()" [disabled]="actionLoading()">Submit</button>
+      }
+      @if (log.status === 'submitted') {
+        <button type="button" (click)="approve()" [disabled]="actionLoading()">Approve</button>
+        <button type="button" class="ghost" (click)="reject()" [disabled]="actionLoading()">Reject</button>
+      }
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Overview</h2>
+      <div class="meta-grid">
+        <div><span>Created by</span><strong>{{ displayUser(log.created_by) }}</strong></div>
+        <div><span>Approved by</span><strong>{{ displayUser(log.approved_by) }}</strong></div>
+        <div><span>Approved at</span><strong>{{ log.approved_at ? (log.approved_at | date:'medium') : '—' }}</strong></div>
+      </div>
+      <div class="text-block">
+        <h3>Work activities</h3>
+        <p>{{ log.work_activities || '—' }}</p>
+      </div>
+      <div class="text-block">
+        <h3>Delays</h3>
+        <p>{{ log.delays || '—' }}</p>
+      </div>
+      <div class="text-block">
+        <h3>Safety notes</h3>
+        <p>{{ log.safety_notes || '—' }}</p>
+      </div>
+      <div class="text-block">
+        <h3>Visitors</h3>
+        <p>{{ log.visitors || '—' }}</p>
+      </div>
+      <div class="text-block">
+        <h3>Weather</h3>
+        <p>{{ log.weather_summary || '—' }}</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <h2>Labour</h2>
+        <span>{{ log.labour_entries?.length || 0 }} entries</span>
+      </header>
+      <div class="entry-form">
+        <input [value]="labourTrade()" (input)="labourTrade.set($any($event.target).value)" placeholder="Trade" />
+        <input [value]="labourCompany()" (input)="labourCompany.set($any($event.target).value)" placeholder="Company" />
+        <input type="number" [value]="labourHeadcount()" (input)="labourHeadcount.set(+$any($event.target).value)" placeholder="Headcount" />
+        <input type="number" [value]="labourHours()" (input)="labourHours.set(+$any($event.target).value)" placeholder="Hours" />
+        <input type="number" [value]="labourOt()" (input)="labourOt.set(+$any($event.target).value)" placeholder="OT hours" />
+        <button type="button" (click)="addLabour()" [disabled]="actionLoading()">Add labour</button>
+      </div>
+      <div class="entries">
+        @for (entry of log.labour_entries; track entry.id) {
+          <article class="entry">
+            <div>
+              <strong>{{ entry.trade }}</strong>
+              @if (entry.company) { <span>{{ entry.company }}</span> }
+            </div>
+            <div class="nums">
+              <span>{{ entry.headcount }} crew</span>
+              <span>{{ entry.hours }}h</span>
+              @if (entry.overtime_hours) { <span>{{ entry.overtime_hours }}h OT</span> }
+            </div>
+          </article>
+        }
+        @if (!(log.labour_entries?.length)) { <div class="empty">No labour entries.</div> }
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <h2>Equipment</h2>
+        <span>{{ log.equipment_entries?.length || 0 }} entries</span>
+      </header>
+      <div class="entry-form">
+        <input [value]="equipName()" (input)="equipName.set($any($event.target).value)" placeholder="Equipment" />
+        <input [value]="equipCode()" (input)="equipCode.set($any($event.target).value)" placeholder="Code" />
+        <input type="number" [value]="equipHours()" (input)="equipHours.set(+$any($event.target).value)" placeholder="Hours" />
+        <input type="number" [value]="equipIdle()" (input)="equipIdle.set(+$any($event.target).value)" placeholder="Idle" />
+        <button type="button" (click)="addEquipment()" [disabled]="actionLoading()">Add equipment</button>
+      </div>
+      <div class="entries">
+        @for (entry of log.equipment_entries; track entry.id) {
+          <article class="entry">
+            <div>
+              <strong>{{ entry.equipment_name }}</strong>
+              @if (entry.equipment_code) { <span>{{ entry.equipment_code }}</span> }
+            </div>
+            <div class="nums">
+              <span>{{ entry.hours }}h</span>
+              @if (entry.idle_hours) { <span>{{ entry.idle_hours }}h idle</span> }
+            </div>
+          </article>
+        }
+        @if (!(log.equipment_entries?.length)) { <div class="empty">No equipment entries.</div> }
+      </div>
+    </section>
+  </div>
+  @if (actionError()) { <div class="alert">{{ actionError() }}</div> }
+}

@@ -1,0 +1,130 @@
+<div class="app">
+  <aside class="sidebar" [class.open]="mobileOpen()">
+    <a class="brand" routerLink="/dashboard" (click)="mobileOpen.set(false)">
+      <span class="mark">SF</span>
+      <span>
+        <strong>SiteForge</strong>
+        <small>Construction OS</small>
+      </span>
+    </a>
+
+    <nav>
+      @for (item of nav; track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          (click)="mobileOpen.set(false)"
+        >
+          <span class="nav-icon"><sf-icon [name]="item.icon"></sf-icon></span>
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-foot">
+      <a routerLink="/profile" routerLinkActive="active" (click)="mobileOpen.set(false)" class="profile-link">
+        <span class="avatar">{{ initials() }}</span>
+        <span class="profile-meta">
+          <strong>{{ displayName() }}</strong>
+          <small>{{ auth.memberships()[0]?.role_code ?? 'member' }}</small>
+        </span>
+      </a>
+      <button class="logout" type="button" (click)="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" type="button" (click)="toggleMobile()" aria-label="Toggle navigation">
+        ☰
+      </button>
+
+      <div class="context">
+        @if (auth.memberships().length > 1) {
+          <label class="select-wrap">
+            <span>Organization</span>
+            <select
+              [value]="auth.activeOrganizationId() ?? ''"
+              (change)="changeOrganization($any($event.target).value)"
+            >
+              @for (membership of auth.memberships(); track membership.id) {
+                <option [value]="membership.organization">{{ membership.organization_name }}</option>
+              }
+            </select>
+          </label>
+        } @else {
+          <div class="org-name">{{ auth.organizationName() }}</div>
+        }
+
+        <span class="divider"></span>
+
+        <label class="select-wrap project">
+          <span>Active project</span>
+          <select [value]="auth.activeProjectId() ?? ''" (change)="changeProject($any($event.target).value)">
+            <option value="">All projects</option>
+            @for (project of projects(); track project.id) {
+              <option [value]="project.id">{{ project.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="top-right">
+        @if (projectsError()) {
+          <span class="offline">Projects unavailable</span>
+        }
+        <div class="notification-wrap">
+          <button class="icon-btn" type="button" (click)="toggleNotifications()" aria-label="Notifications">
+            <sf-icon name="bell"></sf-icon>
+            @if (notifications.unreadCount() > 0) {
+              <span class="badge">{{ notifications.unreadCount() > 99 ? '99+' : notifications.unreadCount() }}</span>
+            }
+          </button>
+          @if (notificationOpen()) {
+            <div class="notification-panel">
+              <header>
+                <div>
+                  <strong>Notifications</strong>
+                  <small>{{ notifications.unreadCount() }} unread</small>
+                </div>
+                <div class="panel-actions">
+                  <button type="button" (click)="markAllNotificationsRead()">Mark all read</button>
+                  <button type="button" (click)="closeNotifications()">Close</button>
+                </div>
+              </header>
+              <div class="notification-list">
+                @if (notifications.loading()) {
+                  <div class="empty">Loading…</div>
+                } @else if (notifications.notifications().length === 0) {
+                  <div class="empty">No notifications</div>
+                } @else {
+                  @for (notification of notifications.notifications(); track notification.id) {
+                    <button class="notification-item" type="button" [class.unread]="!notification.read_at" (click)="openNotification(notification)">
+                      <div class="item-head">
+                        <strong>{{ notification.title }}</strong>
+                        <span>{{ notification.created_at | date:'short' }}</span>
+                      </div>
+                      @if (notification.body) {
+                        <p>{{ notification.body }}</p>
+                      }
+                      <span class="level" [attr.data-level]="notification.level">{{ notification.level }}</span>
+                    </button>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <div class="avatar small">{{ initials() }}</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+@if (mobileOpen()) {
+  <div class="scrim" (click)="mobileOpen.set(false)" tabindex="0" (keydown.escape)="mobileOpen.set(false)"></div>
+}

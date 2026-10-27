@@ -1,0 +1,74 @@
+@if (loading()) {
+  <div class="loading">Loading punch list…</div>
+} @else if (error()) {
+  <div class="alert">{{ error() }} <a routerLink="/quality" class="link">Back to Quality</a></div>
+} @else if (punchList(); as punchList) {
+  <header class="page-header">
+    <div>
+      <a routerLink="/quality" class="back">← Quality & safety</a>
+      <div class="title-row">
+        <h1>{{ punchList.name }}</h1>
+        <span class="chip" [attr.data-status]="punchList.status">{{ punchList.status.replaceAll('_', ' ') }}</span>
+      </div>
+      @if (punchList.description) { <p class="sub">{{ punchList.description }}</p> }
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Details</h2>
+      <div class="meta-grid">
+        <div><span>Assigned to</span><strong>{{ displayUser(punchList.assigned_to) }}</strong></div>
+        <div><span>Target date</span><strong>{{ punchList.target_date ? (punchList.target_date | date:'mediumDate') : '—' }}</strong></div>
+        <div><span>Created</span><strong>{{ punchList.created_at | date:'medium' }}</strong></div>
+        <div><span>Items</span><strong>{{ punchList.items?.length || 0 }}</strong></div>
+      </div>
+    </section>
+
+    <section class="panel full">
+      <header class="panel-header">
+        <h2>Punch list items</h2>
+        <span>{{ punchList.items?.length || 0 }} items</span>
+      </header>
+      <div class="item-form">
+        <input [value]="itemDesc()" (input)="itemDesc.set($any($event.target).value)" placeholder="Item description" />
+        <input [value]="itemLocation()" (input)="itemLocation.set($any($event.target).value)" placeholder="Location" />
+        <input [value]="itemTrade()" (input)="itemTrade.set($any($event.target).value)" placeholder="Trade" />
+        <select [value]="itemPriority()" (change)="itemPriority.set($any($event.target).value)">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
+        </select>
+        <input type="date" [value]="itemDue()" (input)="itemDue.set($any($event.target).value)" />
+        <button type="button" (click)="addItem()" [disabled]="actionLoading()">Add item</button>
+      </div>
+      <div class="items">
+        @for (item of punchList.items; track item.id) {
+          <article class="item" [class.closed]="item.status === 'closed'">
+            <div class="item-main">
+              <div>
+                <strong>{{ item.description }}</strong>
+                <div class="meta">
+                  @if (item.location) { <span>{{ item.location }}</span> }
+                  @if (item.trade) { <span>{{ item.trade }}</span> }
+                  <span class="priority" [attr.data-priority]="item.priority">{{ item.priority }}</span>
+                </div>
+              </div>
+              <div class="item-side">
+                <span>{{ displayUser(item.assigned_to) }}</span>
+                @if (item.due_date) { <span>Due {{ item.due_date | date:'MMM d' }}</span> }
+                <span class="status">{{ item.status.replaceAll('_', ' ') }}</span>
+              </div>
+            </div>
+            @if (item.status !== 'closed') {
+              <button type="button" class="close-btn" (click)="closeItem(item)" [disabled]="actionLoading()">Close item</button>
+            }
+          </article>
+        }
+        @if (!(punchList.items?.length)) { <div class="empty">No items yet.</div> }
+      </div>
+    </section>
+  </div>
+  @if (actionError()) { <div class="alert">{{ actionError() }}</div> }
+}

@@ -1,0 +1,21 @@
+.page-header { margin-bottom: 24px; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; color: #94a3b8; margin: 0; }
+h1 { margin: 6px 0; font-size: 30px; }
+.sub { margin: 0; color: #475569; }
+.tabs { display: flex; gap: 10px; margin-bottom: 18px; }
+.tabs button { border-radius: 999px; border: 1px solid #cbd5f5; background: #fff; padding: 8px 16px; }
+.tabs button.active { background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; border: 0; }
+.card { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 40px 60px -40px rgba(15, 23, 42, 0.4); overflow: hidden; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; padding: 12px 18px; background: #f8fafc; }
+td { padding: 12px 18px; border-top: 1px solid #f1f5f9; }
+.invite-form { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
+.invite-form label { display: flex; flex-direction: column; gap: 6px; }
+.invite-form input, .invite-form select { border-radius: 12px; border: 1px solid #cbd5f5; padding: 9px 12px; }
+.btn.primary { border-radius: 999px; border: 0; background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; padding: 9px 18px; }
+.link { border: 0; background: none; color: #b45309; cursor: pointer; }
+.alert { padding: 14px 18px; background: #fff7ed; border: 1px solid rgba(245,158,11,0.4); border-radius: 12px; margin-bottom: 18px; }
+.success { color: #166534; }
+.empty { padding: 16px; text-align: center; color: #94a3b8; }
+@media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
