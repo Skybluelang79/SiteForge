@@ -1,0 +1,58 @@
+@if (open()) {
+  <div class="palette-backdrop" (click)="close.emit()">
+    <div
+      class="palette"
+      role="dialog"
+      aria-label="Command palette"
+      aria-modal="true"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="palette-head">
+        <sf-icon name="search" [size]="17"></sf-icon>
+        <input
+          #searchInput
+          type="text"
+          [value]="query()"
+          placeholder="Search projects, tools and actions…"
+          (input)="onQuery($any($event.target).value)"
+          (keydown)="onKeydown($event)"
+          aria-label="Search commands"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <kbd>Esc</kbd>
+      </header>
+
+      <div class="palette-list">
+        @for (item of filtered(); track item.id; let index = $index) {
+          <button
+            type="button"
+            class="palette-item"
+            [class.active]="isActive(index)"
+            (click)="run(item)"
+            (mousemove)="activeIndex.set(index)"
+          >
+            <span class="item-icon"><sf-icon [name]="item.icon" [size]="16"></sf-icon></span>
+            <span class="item-copy">
+              <strong>{{ item.label }}</strong>
+              <small>{{ item.hint }}</small>
+            </span>
+            <span class="item-group">{{ item.group }}</span>
+          </button>
+        }
+        @if (!filtered().length) {
+          <div class="palette-empty">
+            <sf-icon name="search" [size]="20"></sf-icon>
+            <p>No commands match “{{ query() }}”.</p>
+          </div>
+        }
+      </div>
+
+      <footer class="palette-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+        <span><kbd>↵</kbd> open</span>
+        <span class="brand-hint"><sf-icon name="command" [size]="13"></sf-icon> SiteForge</span>
+      </footer>
+    </div>
+  </div>
+}

@@ -1,0 +1,140 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Design studio</p>
+    <h1>Canvas</h1>
+    <p class="sub">Draw layouts, markups, details and export PNGs for reviews.</p>
+  </div>
+  <div class="header-actions">
+    <a routerLink="/projects" class="btn ghost">Back to projects</a>
+    <button class="btn ghost" type="button" (click)="exportPNG()"><sf-icon name="download"></sf-icon> Export PNG</button>
+    <button class="btn primary" type="button" (click)="clearAll()"><sf-icon name="trash"></sf-icon> Clear</button>
+  </div>
+</header>
+
+@if (!auth.activeProjectId()) {
+  <div class="alert">Select an active project in the top bar to associate designs.</div>
+}
+
+<div class="studio">
+  <aside class="toolbar">
+    <section>
+      <p class="section-title">Tools</p>
+      <div class="tool-grid">
+        <button class="tool" [class.active]="tool() === 'select'" (click)="selectTool('select')" title="Select"><sf-icon name="mouse-pointer"></sf-icon></button>
+        <button class="tool" (click)="addRect()" title="Rectangle"><sf-icon name="square"></sf-icon></button>
+        <button class="tool" (click)="addCircle()" title="Circle"><sf-icon name="circle"></sf-icon></button>
+        <button class="tool" (click)="addTriangle()" title="Triangle"><sf-icon name="triangle"></sf-icon></button>
+        <button class="tool" (click)="addText()" title="Text"><sf-icon name="type"></sf-icon></button>
+      </div>
+    </section>
+
+    <section>
+      <p class="section-title">View</p>
+      <div class="view-row">
+        <button class="btn tiny ghost" (click)="zoomOut()">-</button>
+        <span>{{ (zoom() * 100).toFixed(0) }}%</span>
+        <button class="btn tiny ghost" (click)="zoomIn()">+</button>
+        <button class="btn tiny ghost" (click)="fitToScreen()">Fit</button>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" [checked]="showGrid()" (change)="toggleGrid()" />
+        <span>Show grid</span>
+      </label>
+    </section>
+
+    <section>
+      <p class="section-title">Arrange</p>
+      <div class="btn-row">
+        <button class="btn tiny ghost" (click)="bringForward()">Bring forward</button>
+        <button class="btn tiny ghost" (click)="sendBackward()">Send back</button>
+        <button class="btn tiny ghost danger" (click)="deleteSelected()" [disabled]="!selectedId()">Delete</button>
+      </div>
+    </section>
+  </aside>
+
+  <main class="canvas-wrap">
+    <canvas #canvas (mousedown)="onMouseDown($event)" (mousemove)="onMouseMove($event)" (mouseup)="onMouseUp()" (mouseleave)="onMouseUp()"></canvas>
+  </main>
+
+  <aside class="properties">
+    <header>
+      <p class="section-title">Properties</p>
+      @if (selectedId()) {
+        <span class="pill">Selected</span>
+      } @else {
+        <span class="muted">No selection</span>
+      }
+    </header>
+
+    @if (objects().length === 0) {
+      <div class="empty">
+        <p>Add shapes or text to start designing.</p>
+      </div>
+    } @else if (!selectedId()) {
+      <div class="empty">
+        <p>Select an object on canvas to edit properties.</p>
+      </div>
+    } @else {
+      @for (item of objects(); track item.id) {
+        @if (item.id === selectedId()) {
+          <div class="prop-group">
+            <label>
+              <span>X</span>
+              <input type="number" [value]="item.x" (input)="updateSelected('x', $any($event.target).value)" />
+            </label>
+            <label>
+              <span>Y</span>
+              <input type="number" [value]="item.y" (input)="updateSelected('y', $any($event.target).value)" />
+            </label>
+            <label>
+              <span>Width</span>
+              <input type="number" [value]="item.width" (input)="updateSelected('width', $any($event.target).value)" />
+            </label>
+            <label>
+              <span>Height</span>
+              <input type="number" [value]="item.height" (input)="updateSelected('height', $any($event.target).value)" />
+            </label>
+            <label>
+              <span>Rotation</span>
+              <input type="number" [value]="item.rotation" (input)="updateSelected('rotation', $any($event.target).value)" />
+            </label>
+          </div>
+
+          <div class="prop-group">
+            <label class="full">
+              <span>Fill</span>
+              <div class="color-row">
+                <input type="color" [value]="item.fill.startsWith('#') && item.fill.length === 7 ? item.fill : '#f59e0b'" (change)="updateSelected('fill', $any($event.target).value + '33')" />
+                <input type="text" [value]="item.fill" (input)="updateSelected('fill', $any($event.target).value)" />
+              </div>
+            </label>
+            <label class="full">
+              <span>Stroke</span>
+              <div class="color-row">
+                <input type="color" [value]="item.stroke.startsWith('#') && item.stroke.length === 7 ? item.stroke : '#f59e0b'" (change)="updateSelected('stroke', $any($event.target).value)" />
+                <input type="text" [value]="item.stroke" (input)="updateSelected('stroke', $any($event.target).value)" />
+              </div>
+            </label>
+            <label>
+              <span>Stroke width</span>
+              <input type="number" [value]="item.strokeWidth" (input)="updateSelected('strokeWidth', $any($event.target).value)" />
+            </label>
+          </div>
+
+          @if (item.type === 'text') {
+            <div class="prop-group">
+              <label class="full">
+                <span>Text</span>
+                <textarea rows="3" [value]="item.text ?? ''" (input)="updateSelected('text', $any($event.target).value)"></textarea>
+              </label>
+              <label>
+                <span>Font size</span>
+                <input type="number" [value]="item.fontSize ?? 18" (input)="updateSelected('fontSize', $any($event.target).value)" />
+              </label>
+            </div>
+          }
+        }
+      }
+    }
+  </aside>
+</div>

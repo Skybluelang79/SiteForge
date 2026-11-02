@@ -1,0 +1,102 @@
+@if (open()) {
+  <aside class="copilot" role="dialog" aria-label="SiteForge Copilot">
+    <header class="copilot-head">
+      <div class="brand">
+        <span class="orb"><sf-icon name="sparkles" [size]="17"></sf-icon></span>
+        <div>
+          <strong>SiteForge Copilot</strong>
+          <small><i class="live-dot"></i>{{ contextLoading() ? 'Loading workspace…' : 'Live workspace context' }}</small>
+        </div>
+      </div>
+      <button type="button" class="close" (click)="close.emit()" aria-label="Close Copilot">
+        <sf-icon name="x" [size]="17"></sf-icon>
+      </button>
+    </header>
+
+    <div class="copilot-body" #scroller>
+      <div class="messages" aria-live="polite">
+        @for (message of messages(); track message.id) {
+          <article class="message" [attr.data-role]="message.role">
+            <div class="avatar" [attr.data-role]="message.role">
+              @if (message.role === 'assistant') {
+                <sf-icon name="sparkles" [size]="14"></sf-icon>
+              } @else {
+                <sf-icon name="users" [size]="14"></sf-icon>
+              }
+            </div>
+            <div class="bubble">
+              <p>{{ message.text }}</p>
+              @if (message.actions?.length) {
+                <div class="bubble-actions">
+                  @for (action of message.actions; track action.route) {
+                    <a [routerLink]="action.route" (click)="close.emit()">
+                      {{ action.label }}
+                      <sf-icon name="arrow-right" [size]="11"></sf-icon>
+                    </a>
+                  }
+                </div>
+              }
+              <span>{{ timeLabel(message.at) }}</span>
+            </div>
+          </article>
+        }
+        @if (busy()) {
+          <article class="message" data-role="assistant">
+            <div class="avatar" data-role="assistant"><sf-icon name="sparkles" [size]="14"></sf-icon></div>
+            <div class="bubble typing"><i></i><i></i><i></i></div>
+          </article>
+        }
+      </div>
+
+      @if (queue().length) {
+        <section class="queue">
+          <header>
+            <p>
+              Prompt queue
+              <span>{{ queuedCount() }} pending</span>
+            </p>
+            <button type="button" (click)="clearCompleted()">Clear answered</button>
+          </header>
+          <div class="queue-list">
+            @for (item of queue(); track item.id) {
+              <div class="queue-item" [attr.data-status]="item.status">
+                <span class="queue-status">{{ statusLabel(item.status) }}</span>
+                <p>{{ item.text }}</p>
+                @if (item.status === 'queued') {
+                  <button type="button" (click)="removeQueued(item.id)" aria-label="Remove prompt">
+                    <sf-icon name="x" [size]="12"></sf-icon>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      <section class="suggestions">
+        <p>Try asking</p>
+        <div class="chips">
+          @for (suggestion of suggestions(); track suggestion) {
+            <button type="button" (click)="useSuggestion(suggestion)">{{ suggestion }}</button>
+          }
+        </div>
+      </section>
+    </div>
+
+    <footer class="composer">
+      <textarea
+        rows="2"
+        placeholder="Ask about risk, schedule, budget or the site plan…"
+        [value]="prompt()"
+        (input)="prompt.set($any($event.target).value)"
+        (keydown)="onComposerKeydown($event)"
+      ></textarea>
+      <div class="composer-foot">
+        <span>Enter to send · Shift + Enter for a new line</span>
+        <button type="button" class="send" [disabled]="!prompt().trim()" (click)="submit()" aria-label="Send prompt">
+          <sf-icon name="send" [size]="15"></sf-icon>
+        </button>
+      </div>
+    </footer>
+  </aside>
+}

@@ -153,6 +153,48 @@ def test_dashboard_kpis(org_owner):
     assert resp.data["kpis"]["total_projects"] >= 1
 
 
+def test_dashboard_health_risk_and_site_plan(org_owner):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.rfis.models import RFI
+    from apps.tasks.models import Task
+
+    org, user, _ = org_owner
+    project = create_project(org, name="Health Project", created_by=user, status="active")
+    today = timezone.now().date()
+    Task.objects.create(
+        project=project,
+        title="Overdue pour",
+        status="todo",
+        priority="high",
+        due_date=today - timedelta(days=4),
+    )
+    RFI.objects.create(
+        project=project,
+        number="RFI-001",
+        subject="Embed plate conflict",
+        question="Confirm embed layout.",
+        status="open",
+        due_date=today - timedelta(days=2),
+    )
+
+    client = authenticated_client(user, org.id)
+    resp = client.get(f"/api/v1/dashboard/?project={project.id}")
+    assert resp.status_code == 200, resp.content
+
+    assert resp.data["health"]["score"] <= 100
+    assert resp.data["health"]["projects"][0]["percent_complete"] >= 0
+    assert resp.data["risk_insights"]
+    assert any(risk["category"] == "schedule" for risk in resp.data["risk_insights"])
+    assert resp.data["site_plan"]["project_id"] == str(project.id)
+    assert resp.data["site_plan"]["zones"]
+    main_zone = next(zone for zone in resp.data["site_plan"]["zones"] if zone["id"] == "main-structure")
+    assert main_zone["meta"]["tasks"] >= 0
+    assert resp.data["promotions"]
+
+
 def test_health_and_readiness(api_client):
     assert api_client.get("/api/v1/health/").status_code == 200
     resp = api_client.get("/api/v1/health/ready/")

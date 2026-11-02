@@ -2,7 +2,9 @@
   <div>
     <p class="eyebrow">Command center · {{ todayLabel }}</p>
     <h1>Good day, {{ firstName() }}.</h1>
-    <p class="sub">Here is where {{ auth.organizationName() }} stands across active delivery.</p>
+    <p class="sub">
+      Live delivery health, site progress and commercial risk for {{ auth.organizationName() }}.
+    </p>
   </div>
   <div class="head-actions">
     <a class="btn ghost" routerLink="/projects">View projects</a>
@@ -20,13 +22,22 @@
       <div class="card skeleton-card"></div>
     }
   </div>
+  <div class="workspace">
+    <div class="left-col">
+      <div class="card skeleton-plan"></div>
+    </div>
+    <div class="right-col">
+      <div class="card skeleton-card tall"></div>
+      <div class="card skeleton-card"></div>
+    </div>
+  </div>
 } @else if (data(); as dashboard) {
   <div class="kpi-grid">
     <article class="card kpi">
       <span class="kpi-label">Active projects</span>
       <strong>{{ number(dashboard.kpis.active_projects) }}</strong>
       <span class="kpi-foot">{{ number(dashboard.kpis.total_projects) }} total in workspace</span>
-      <span class="kpi-icon">▦</span>
+      <span class="kpi-icon"><sf-icon name="users" [size]="16"></sf-icon></span>
     </article>
     <article class="card kpi">
       <span class="kpi-label">Open tasks</span>
@@ -34,7 +45,7 @@
       <span class="kpi-foot" [class.warn]="dashboard.kpis.overdue_tasks > 0">
         {{ number(dashboard.kpis.overdue_tasks) }} overdue
       </span>
-      <span class="kpi-icon">✓</span>
+      <span class="kpi-icon"><sf-icon name="check-square" [size]="16"></sf-icon></span>
     </article>
     <article class="card kpi">
       <span class="kpi-label">Open RFIs</span>
@@ -42,62 +53,185 @@
       <span class="kpi-foot" [class.warn]="dashboard.kpis.overdue_rfis > 0">
         {{ number(dashboard.kpis.overdue_rfis) }} past due
       </span>
-      <span class="kpi-icon">?</span>
+      <span class="kpi-icon"><sf-icon name="message-square" [size]="16"></sf-icon></span>
     </article>
     <article class="card kpi">
-      <span class="kpi-label">Safety incidents · 90d</span>
+      <span class="kpi-label">Safety · 90 days</span>
       <strong>{{ number(dashboard.kpis.safety_incidents_90d) }}</strong>
       <span class="kpi-foot">{{ number(dashboard.kpis.open_submittals) }} open submittals</span>
-      <span class="kpi-icon">◎</span>
+      <span class="kpi-icon"><sf-icon name="shield-check" [size]="16"></sf-icon></span>
     </article>
   </div>
 
-  <div class="split">
-    <section class="card budget">
-      <header>
-        <div>
-          <p class="eyebrow">Commercial position</p>
-          <h2>Budget utilization</h2>
-        </div>
-        <a class="link" routerLink="/financials">Financials →</a>
-      </header>
-      <div class="budget-figures">
-        <div><span>Budget</span><strong>{{ money(dashboard.kpis.budgeted) }}</strong></div>
-        <div><span>Committed</span><strong>{{ money(dashboard.kpis.committed_cost) }}</strong></div>
-        <div><span>Actual</span><strong>{{ money(dashboard.kpis.actual_cost) }}</strong></div>
-      </div>
-      <div class="bar-group">
-        <div class="bar-label"><span>Committed</span><b>{{ committed() }}%</b></div>
-        <div class="bar"><i class="committed" [style.width.%]="committed()"></i></div>
-        <div class="bar-label"><span>Actual cost</span><b>{{ utilization() }}%</b></div>
-        <div class="bar"><i class="actual" [style.width.%]="utilization()"></i></div>
-      </div>
-      <footer>
-        <span>Pending change orders</span>
-        <strong>{{ money(dashboard.kpis.pending_change_orders) }}</strong>
-      </footer>
-    </section>
+  <div class="workspace">
+    <div class="left-col">
+      <sf-site-plan [plan]="dashboard.site_plan" />
 
-    <section class="card">
-      <header>
-        <div>
-          <p class="eyebrow">Look ahead</p>
-          <h2>Milestones due soon</h2>
+      <section class="card insights">
+        <header>
+          <div>
+            <p class="eyebrow">Risk radar</p>
+            <h2>What needs attention</h2>
+          </div>
+          <span class="count-pill">{{ dashboard.risk_insights.length }} signals</span>
+        </header>
+
+        @if (dashboard.risk_insights.length) {
+          <div class="insight-list">
+            @for (insight of dashboard.risk_insights; track insight.id) {
+              <article class="insight" [attr.data-severity]="insight.severity">
+                <span class="severity-dot"></span>
+                <div class="insight-copy">
+                  <div class="insight-meta">
+                    <span class="category">{{ insight.category_label }}</span>
+                    <span class="project">{{ insight.project_name }}</span>
+                  </div>
+                  <strong>{{ insight.title }}</strong>
+                  <p>{{ insight.detail }}</p>
+                </div>
+                <a class="insight-action" [routerLink]="insight.action_route">
+                  {{ insight.action_label }}
+                  <sf-icon name="arrow-right" [size]="13"></sf-icon>
+                </a>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="clear-state">
+            <sf-icon name="shield-check" [size]="20"></sf-icon>
+            <div>
+              <strong>No material risk signals</strong>
+              <p>Schedule, commercial and safety signals are within tolerance for this snapshot.</p>
+            </div>
+          </div>
+        }
+      </section>
+    </div>
+
+    <aside class="right-col">
+      <section class="card health">
+        <header>
+          <div>
+            <p class="eyebrow">Portfolio health</p>
+            <h2>Delivery confidence</h2>
+          </div>
+          <a class="link" routerLink="/projects">Projects →</a>
+        </header>
+
+        <div class="health-hero">
+          <div
+            class="health-ring"
+            [style.background]="ringBackground(dashboard.health.score, dashboard.health.status)"
+          >
+            <div>
+              <strong>{{ dashboard.health.score }}</strong>
+              <span>/100</span>
+            </div>
+          </div>
+          <div class="health-copy">
+            <span class="status-chip" [attr.data-status]="dashboard.health.status">
+              {{ healthLabel(dashboard.health.status) }}
+            </span>
+            <p>Weighted across active projects in this workspace.</p>
+          </div>
         </div>
-      </header>
-      <ul class="milestones">
-        @for (milestone of dashboard.milestones_due_soon; track milestone.id) {
-          <li>
-            <span class="date">{{ dateLabel(milestone.due_date) }}</span>
-            <span class="name">{{ milestone.name }}</span>
-            <span class="chip">{{ milestone.status.replaceAll('_', ' ') }}</span>
-          </li>
+
+        <div class="dimensions">
+          @for (dimension of dashboard.health.dimensions; track dimension.key) {
+            <div class="dimension">
+              <div class="dimension-label">
+                <span>{{ dimension.label }}</span>
+                <b>{{ dimension.score }}</b>
+              </div>
+              <div class="track">
+                <i
+                  [style.width.%]="dimension.score"
+                  [style.background]="healthColor(scoreTone(dimension.score))"
+                ></i>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="health-projects">
+          <p class="side-title">Project watch list</p>
+          @for (project of dashboard.health.projects.slice(0, 4); track project.id) {
+            <a class="health-project" [routerLink]="['/projects', project.id]">
+              <span class="project-dot" [style.background]="healthColor(project.health_status)"></span>
+              <span class="project-main">
+                <strong>{{ project.name }}</strong>
+                <small>{{ project.overdue_tasks }} overdue tasks · {{ project.percent_complete }}% complete</small>
+              </span>
+              <span class="project-score" [attr.data-status]="project.health_status">{{ project.score }}</span>
+            </a>
+          }
+          @if (!dashboard.health.projects.length) {
+            <p class="empty">No projects in the workspace yet.</p>
+          }
+        </div>
+      </section>
+
+      <section class="card budget">
+        <header>
+          <div>
+            <p class="eyebrow">Commercial position</p>
+            <h2>Budget utilization</h2>
+          </div>
+          <a class="link" routerLink="/financials">Financials →</a>
+        </header>
+        <div class="budget-figures">
+          <div><span>Budget</span><strong>{{ money(dashboard.kpis.budgeted) }}</strong></div>
+          <div><span>Committed</span><strong>{{ money(dashboard.kpis.committed_cost) }}</strong></div>
+          <div><span>Actual</span><strong>{{ money(dashboard.kpis.actual_cost) }}</strong></div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-label"><span>Committed</span><b>{{ committed() }}%</b></div>
+          <div class="bar"><i class="committed" [style.width.%]="committed()"></i></div>
+          <div class="bar-label"><span>Actual cost</span><b>{{ utilization() }}%</b></div>
+          <div class="bar"><i class="actual" [style.width.%]="utilization()"></i></div>
+        </div>
+        <footer>
+          <span>Pending change orders</span>
+          <strong>{{ money(dashboard.kpis.pending_change_orders) }}</strong>
+        </footer>
+      </section>
+
+      <section class="card milestones">
+        <header>
+          <div>
+            <p class="eyebrow">Look ahead</p>
+            <h2>Milestones due soon</h2>
+          </div>
+        </header>
+        <ul>
+          @for (milestone of dashboard.milestones_due_soon; track milestone.id) {
+            <li>
+              <span class="date">{{ dateLabel(milestone.due_date) }}</span>
+              <span class="name">{{ milestone.name }}</span>
+              <span class="chip">{{ milestone.status.replaceAll('_', ' ') }}</span>
+            </li>
+          }
+          @if (!dashboard.milestones_due_soon.length) {
+            <li class="empty">No milestones due in the next 30 days.</li>
+          }
+        </ul>
+      </section>
+
+      <section class="ads">
+        @for (promotion of dashboard.promotions; track promotion.id) {
+          <a class="ad-card" [attr.data-tone]="promotion.tone" [routerLink]="promotion.route">
+            <span class="sponsored">Sponsored</span>
+            <p class="ad-eyebrow">{{ promotion.eyebrow }}</p>
+            <strong>{{ promotion.title }}</strong>
+            <p>{{ promotion.body }}</p>
+            <span class="ad-cta">
+              {{ promotion.cta }}
+              <sf-icon name="arrow-right" [size]="13"></sf-icon>
+            </span>
+          </a>
         }
-        @if (!dashboard.milestones_due_soon.length) {
-          <li class="empty">No milestones due in the next 30 days.</li>
-        }
-      </ul>
-    </section>
+      </section>
+    </aside>
   </div>
 
   <section class="card projects">
@@ -112,11 +246,16 @@
       @for (project of dashboard.projects; track project.id) {
         <a class="project-tile" [routerLink]="['/projects', project.id]">
           <div class="project-top">
-            <span class="code">{{ project.code ?? 'PRJ' }}</span>
-            <span class="chip">{{ project.status ?? 'active' }}</span>
+            <span class="code">{{ project.number || 'PRJ' }}</span>
+            <span
+              class="health-chip"
+              [attr.data-status]="project.health_status"
+            >
+              {{ healthLabel(project.health_status) }}
+            </span>
           </div>
           <strong>{{ project.name }}</strong>
-          <small>{{ project.city }}{{ project.city && project.state ? ', ' : '' }}{{ project.state }}</small>
+          <small>{{ project.city }}{{ project.city && project.region ? ', ' : '' }}{{ project.region }}</small>
           <div class="progress">
             <i [style.width.%]="project.percent_complete ?? 0"></i>
           </div>

@@ -15,6 +15,14 @@ x-backend-environment: &backend-environment
   EMAIL_HOST: mailpit
   EMAIL_PORT: "1025"
   SEED_DEMO_DATA: ${SEED_DEMO_DATA:-0}
+  AI_ENABLED: ${AI_ENABLED:-True}
+  AI_API_KEY: ${AI_API_KEY:-}
+  AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+  AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
+  AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-30}
+  AI_MAX_TOKENS: ${AI_MAX_TOKENS:-900}
+  AI_TEMPERATURE: ${AI_TEMPERATURE:-0.2}
+  THROTTLE_ASSISTANT: ${THROTTLE_ASSISTANT:-30}
 
 x-backend-service: &backend-service
   build:

@@ -56,6 +56,7 @@ backend/
     reports/         # saved report configs, analytics endpoints, CSV/PDF-ish exports
     integrations/    # ApiApplication (OAuth clients), webhooks, deliveries, health
     notifications/   # Notification, preferences, Channels consumer
+    assistant/       # Grounded AI copilot, provider orchestration, fallback
     audit/           # AuditEvent, admin console read APIs
   seed/management/commands/seed_dev_data.py
   tests/             # cross-app + per-app tests live next to apps too
@@ -142,6 +143,7 @@ export generation. All tasks are idempotent where re-delivery is possible.
 - `inspections/`, `defects/`, `punch-lists/`, `safety-incidents/`, `corrective-actions/`
 - `reports/`, `analytics/`, `exports/`
 - `notifications/`, `webhooks/`, `api-applications/`, `integrations/health/`
+- `assistant/chat/` — grounded AI copilot with suggested action routes
 - `admin/` — users, org settings, audit log, feature flags, ops metrics
 - `dashboard/` — cross-project KPIs for the active org
 - OpenAPI via `drf-spectacular` at `/api/schema/` + Swagger UI at `/api/docs/`

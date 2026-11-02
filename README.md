@@ -37,6 +37,21 @@ SQLite is used when `DATABASE_URL` is unset. Redis is optional locally: set
 `USE_IN_MEMORY_CHANNEL_LAYER=True` in `backend/.env` to avoid websocket connection noise, and
 `CELERY_TASK_ALWAYS_EAGER=True` to run background tasks inline.
 
+### AI copilot
+
+The copilot calls any OpenAI-compatible `/chat/completions` endpoint. Add these to
+`backend/.env` (or the root `.env` for Docker Compose):
+
+```ini
+AI_ENABLED=True
+AI_API_KEY=sk-...
+AI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4.1-mini
+```
+
+With no key the copilot still works using a deterministic, server-grounded fallback. The API is
+`POST /api/v1/assistant/chat/` and is rate-limited by `THROTTLE_ASSISTANT` (default 30/min).
+
 ### Frontend
 
 ```powershell
@@ -120,6 +135,8 @@ npm run build
 - **Integrations:** API applications with hashed credentials, HMAC-signed webhooks with retry and
   delivery history, webhook event log.
 - **Notifications:** persisted notifications, WebSocket fan-out, audit trail.
+- **AI copilot:** grounded portfolio assistant with prompt queue, actionable deep links and a
+  deterministic fallback. Works with any OpenAI-compatible chat-completions provider.
 - **Frontend:** login + MFA, dashboard, project portfolio and detail workspace, resource pages for
   documents, drawings, field logs, tasks, RFIs, financials, quality, reports and integrations,
   profile/permissions view, project and organization switching.

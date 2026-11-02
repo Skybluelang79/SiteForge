@@ -73,6 +73,15 @@
         @if (projectsError()) {
           <span class="offline">Projects unavailable</span>
         }
+        <button class="search-trigger" type="button" (click)="openPalette()" aria-label="Open command palette">
+          <sf-icon name="search" [size]="15"></sf-icon>
+          <span>Search</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="copilot-trigger" type="button" (click)="openCopilot()" aria-label="Open AI Copilot">
+          <sf-icon name="sparkles" [size]="15"></sf-icon>
+          <span>Copilot</span>
+        </button>
         <div class="notification-wrap">
           <button class="icon-btn" type="button" (click)="toggleNotifications()" aria-label="Notifications">
             <sf-icon name="bell"></sf-icon>
@@ -128,3 +137,11 @@
 @if (mobileOpen()) {
   <div class="scrim" (click)="mobileOpen.set(false)" tabindex="0" (keydown.escape)="mobileOpen.set(false)"></div>
 }
+
+<sf-command-palette
+  [open]="paletteOpen()"
+  (close)="paletteOpen.set(false)"
+  (action)="onPaletteAction($event)"
+/>
+
+<sf-copilot [open]="copilotOpen()" (close)="copilotOpen.set(false)" />

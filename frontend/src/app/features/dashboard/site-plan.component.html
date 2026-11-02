@@ -1,0 +1,281 @@
+@if (plan(); as site) {
+  <section class="site-plan">
+    <header class="plan-head">
+      <div class="plan-title">
+        <p class="eyebrow">2D site plan</p>
+        <h2>{{ site.project_name }}</h2>
+        <p class="sub">
+          {{ site.project_code || 'Project' }} · updated {{ updatedLabel(site.updated_at) }}
+        </p>
+      </div>
+      <div class="plan-actions">
+        <span class="health-pill" [attr.data-status]="site.health_status">
+          <i></i>{{ healthLabel(site.health_status) }} · {{ site.health_score }}
+        </span>
+        <div class="zoom-controls">
+          <button type="button" (click)="zoomOut()" aria-label="Zoom out">−</button>
+          <span>{{ zoomLabel() }}</span>
+          <button type="button" (click)="zoomIn()" aria-label="Zoom in">+</button>
+          <button type="button" class="fit" (click)="fit()">Fit</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="plan-body">
+      <div class="plan-canvas" #canvas>
+        <svg
+          #svg
+          [attr.viewBox]="viewBox()"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          [attr.aria-label]="'Site plan for ' + site.project_name"
+          (wheel)="onWheel($event)"
+          (mousedown)="startPan($event)"
+          (mousemove)="onPointerMove($event)"
+          (mouseup)="stopPan()"
+          (mouseleave)="stopPan()"
+          (click)="clearSelection()"
+        >
+          <defs>
+            <pattern
+              id="sf-site-grid"
+              [attr.width]="site.grid"
+              [attr.height]="site.grid"
+              patternUnits="userSpaceOnUse"
+            >
+              <path
+                [attr.d]="'M ' + site.grid + ' 0 L 0 0 0 ' + site.grid"
+                fill="none"
+                stroke="#dbe4ef"
+                stroke-width="0.14"
+              />
+            </pattern>
+            <filter id="sf-zone-shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0.5" stdDeviation="0.7" flood-color="#0f172a" flood-opacity="0.16" />
+            </filter>
+          </defs>
+
+          <g [attr.transform]="transform()">
+            <rect
+              [attr.x]="site.boundary.x"
+              [attr.y]="site.boundary.y"
+              [attr.width]="site.boundary.width"
+              [attr.height]="site.boundary.height"
+              rx="1.5"
+              class="site-boundary"
+            />
+            <rect
+              [attr.x]="site.boundary.x"
+              [attr.y]="site.boundary.y"
+              [attr.width]="site.boundary.width"
+              [attr.height]="site.boundary.height"
+              rx="1.5"
+              fill="url(#sf-site-grid)"
+            />
+
+            <line
+              [attr.x1]="site.boundary.x"
+              [attr.y1]="site.boundary.y + site.boundary.height / 2"
+              [attr.x2]="site.boundary.x + site.boundary.width"
+              [attr.y2]="site.boundary.y + site.boundary.height / 2"
+              class="centerline"
+            />
+            <line
+              [attr.x1]="site.boundary.x + site.boundary.width / 2"
+              [attr.y1]="site.boundary.y"
+              [attr.x2]="site.boundary.x + site.boundary.width / 2"
+              [attr.y2]="site.boundary.y + site.boundary.height"
+              class="centerline"
+            />
+
+            @for (zone of visibleZones(); track zone.id) {
+              <g
+                class="zone"
+                [class.selected]="selectedId() === zone.id"
+                [class.hovered]="hoveredId() === zone.id"
+                (click)="$event.stopPropagation(); selectZone(zone)"
+                (mouseenter)="onZoneEnter(zone, $event)"
+                (mouseleave)="onZoneLeave()"
+              >
+                <rect
+                  [attr.x]="zone.x"
+                  [attr.y]="zone.y"
+                  [attr.width]="zone.width"
+                  [attr.height]="zone.height"
+                  rx="1.4"
+                  [attr.fill]="zone.color"
+                  fill-opacity="0.13"
+                  [attr.stroke]="zone.color"
+                  stroke-width="0.45"
+                  filter="url(#sf-zone-shadow)"
+                />
+                <rect
+                  [attr.x]="zone.x"
+                  [attr.y]="zone.y"
+                  [attr.width]="zone.width"
+                  [attr.height]="zone.height"
+                  rx="1.4"
+                  fill="none"
+                  [attr.stroke]="zone.color"
+                  stroke-width="0.18"
+                  stroke-dasharray="1.6 1.1"
+                  opacity="0.7"
+                />
+                <text
+                  [attr.x]="zone.x + 1.8"
+                  [attr.y]="zone.y + 3.6"
+                  class="zone-label"
+                  [attr.fill]="zone.color"
+                >
+                  {{ zone.label }}
+                </text>
+                <text
+                  [attr.x]="zone.x + 1.8"
+                  [attr.y]="zone.y + 7.2"
+                  class="zone-meta"
+                >
+                  {{ statusLabel(zone.status) }} · {{ zone.progress }}%
+                </text>
+                <rect
+                  [attr.x]="zone.x + 1.8"
+                  [attr.y]="zone.y + zone.height - 3.2"
+                  [attr.width]="zone.width - 3.6"
+                  height="1.25"
+                  rx="0.6"
+                  fill="#ffffff"
+                  opacity="0.75"
+                />
+                <rect
+                  [attr.x]="zone.x + 1.8"
+                  [attr.y]="zone.y + zone.height - 3.2"
+                  [attr.width]="progressWidth(zone)"
+                  height="1.25"
+                  rx="0.6"
+                  [attr.fill]="zone.color"
+                />
+              </g>
+            }
+
+            @for (marker of visibleMarkers(); track marker.id) {
+              <g class="marker" [attr.transform]="'translate(' + marker.x + ' ' + marker.y + ')'">
+                <circle r="2.5" [attr.fill]="markerColor(marker.kind)" opacity="0.18" />
+                <circle r="1.65" [attr.fill]="markerColor(marker.kind)" />
+                <text y="0.62" text-anchor="middle" class="marker-glyph">
+                  {{ markerGlyph(marker) }}
+                </text>
+                <text y="4.6" text-anchor="middle" class="marker-label">{{ marker.label }}</text>
+              </g>
+            }
+          </g>
+        </svg>
+
+        <div class="north-arrow" [style.transform]="'rotate(' + site.north_angle + 'deg)'">
+          <span>N</span>
+          <i></i>
+        </div>
+        <div class="scale-bar">
+          <span>0</span>
+          <i></i>
+          <span>50 m</span>
+        </div>
+
+        @if (tooltip(); as tip) {
+          @if (hoveredZone(); as zone) {
+            <div class="map-tooltip" [style.left.px]="tip.x + 14" [style.top.px]="tip.y + 14">
+              <strong>{{ zone.label }}</strong>
+              <span>{{ statusLabel(zone.status) }} · {{ zone.progress }}% complete</span>
+              @if (zone.meta; as meta) {
+                <small>
+                  {{ meta['tasks'] ?? 0 }} open tasks · {{ meta['rfis'] ?? 0 }} RFIs
+                </small>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <aside class="plan-side">
+        <div class="stat-grid">
+          <div>
+            <span>Progress</span>
+            <strong>{{ site.stats.percent_complete }}%</strong>
+          </div>
+          <div>
+            <span>Open tasks</span>
+            <strong>{{ site.stats.open_tasks }}</strong>
+          </div>
+          <div>
+            <span>Overdue</span>
+            <strong [class.warn]="site.stats.overdue_tasks > 0">{{ site.stats.overdue_tasks }}</strong>
+          </div>
+          <div>
+            <span>Open RFIs</span>
+            <strong>{{ site.stats.open_rfis }}</strong>
+          </div>
+        </div>
+
+        <div class="layers">
+          <p class="side-title">Layers</p>
+          <div class="layer-grid">
+            @for (item of site.legend; track item.kind) {
+              <button
+                type="button"
+                class="layer"
+                [class.off]="!isLayerOn(item.kind)"
+                (click)="toggleLayer(item.kind)"
+              >
+                <i [style.background]="item.color"></i>
+                {{ item.label }}
+              </button>
+            }
+            <button
+              type="button"
+              class="layer"
+              [class.off]="!isLayerOn('safety')"
+              (click)="toggleLayer('safety')"
+            >
+              <i style="background: #ef4444"></i>
+              Safety
+            </button>
+          </div>
+        </div>
+
+        @if (selectedZone(); as zone) {
+          <div class="zone-detail">
+            <header>
+              <span class="side-title">Selected zone</span>
+              <button type="button" class="clear" (click)="clearSelection()">
+                <sf-icon name="x" [size]="14"></sf-icon>
+              </button>
+            </header>
+            <strong>{{ zone.label }}</strong>
+            <div class="detail-bar">
+              <i [style.width.%]="zone.progress" [style.background]="zone.color"></i>
+            </div>
+            <div class="detail-meta">
+              <span>{{ statusLabel(zone.status) }}</span>
+              <b>{{ zone.progress }}%</b>
+            </div>
+            @if (zone.meta; as meta) {
+              <div class="detail-chips">
+                <span>{{ meta['tasks'] ?? 0 }} tasks</span>
+                <span>{{ meta['rfis'] ?? 0 }} RFIs</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="zone-hint">
+            <sf-icon name="mouse-pointer" [size]="16"></sf-icon>
+            <p>Hover for status, select a zone for detail. Scroll to zoom, drag to pan.</p>
+          </div>
+        }
+      </aside>
+    </div>
+  </section>
+} @else {
+  <section class="site-plan empty-plan">
+    <div class="empty-mark"><sf-icon name="map" [size]="26"></sf-icon></div>
+    <h2>No site plan yet</h2>
+    <p>Select a project with active work to generate its 2D site plan.</p>
+  </section>
+}

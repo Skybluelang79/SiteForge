@@ -33,6 +33,10 @@ export const routes: Routes = [
           import('./features/projects/project-detail.component').then((m) => m.ProjectDetailComponent),
       },
       {
+        path: 'design/canvas',
+        loadComponent: () => import('./features/design/design-canvas.component').then((m) => m.DesignCanvasComponent),
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./features/profile/profile.component').then((m) => m.ProfileComponent),
       },
