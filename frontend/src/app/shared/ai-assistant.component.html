@@ -1,0 +1,93 @@
+@if (ui.open()) {
+  <div class="copilot-layer" role="dialog" aria-label="SiteForge Copilot">
+    <button class="backdrop" type="button" aria-label="Close copilot" (click)="close()"></button>
+
+    <aside class="copilot">
+      <header class="copilot-head">
+        <div class="identity">
+          <span class="orb"><sf-icon name="sparkles" [size]="18" /></span>
+          <div>
+            <strong>SiteForge Copilot</strong>
+            <small>{{ scopeLabel() }}</small>
+          </div>
+        </div>
+        <div class="head-actions">
+          <span class="provider" [class.live]="providerConfigured()">
+            <i></i>{{ providerLabel() }}
+          </span>
+          <button class="icon" type="button" (click)="clear()" aria-label="New conversation">
+            <sf-icon name="rotate" [size]="15" />
+          </button>
+          <button class="icon" type="button" (click)="close()" aria-label="Close copilot">
+            <sf-icon name="x" [size]="16" />
+          </button>
+        </div>
+      </header>
+
+      <div #scroller class="thread">
+        @for (message of messages(); track $index) {
+          <article class="msg" [class.user]="message.role === 'user'">
+            <span class="avatar" [class.me]="message.role === 'user'">
+              {{ message.role === 'user' ? initials() : 'AI' }}
+            </span>
+            <div class="bubble">
+              <p>{{ message.content }}</p>
+              <span class="stamp">
+                {{ message.time }}{{ message.provider ? ' · ' + message.provider : '' }}
+              </span>
+            </div>
+          </article>
+        }
+
+        @if (loading()) {
+          <article class="msg">
+            <span class="avatar">AI</span>
+            <div class="bubble typing" aria-label="Copilot is thinking">
+              <i></i><i></i><i></i>
+            </div>
+          </article>
+        }
+
+        @if (error()) {
+          <div class="error">
+            <sf-icon name="alert-triangle" [size]="15" />
+            <span>{{ error() }}</span>
+          </div>
+        }
+      </div>
+
+      @if (suggestions().length && !loading()) {
+        <div class="chips" aria-label="Suggested prompts">
+          @for (suggestion of suggestions(); track suggestion) {
+            <button type="button" (click)="send(suggestion)">{{ suggestion }}</button>
+          }
+        </div>
+      }
+
+      <div class="composer">
+        <textarea
+          [ngModel]="draft()"
+          (ngModelChange)="draft.set($event)"
+          (keydown)="onKeydown($event)"
+          rows="2"
+          placeholder="Ask about budget, schedule, RFIs, quality or safety…"
+          aria-label="Message SiteForge Copilot"
+        ></textarea>
+        <button
+          class="send"
+          type="button"
+          [disabled]="!draft().trim() || loading()"
+          (click)="send()"
+          aria-label="Send message"
+        >
+          <sf-icon name="send" [size]="16" />
+        </button>
+      </div>
+
+      <footer class="copilot-foot">
+        <span>Enter to send · Shift + Enter for a new line</span>
+        <span>{{ messages().length }} messages</span>
+      </footer>
+    </aside>
+  </div>
+}

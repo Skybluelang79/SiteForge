@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.ads.models import Advertisement
 from apps.documents.models import Document, DocumentFolder
 from apps.documents.services import add_version
 from apps.drawings.models import Drawing, DrawingSet
@@ -650,6 +651,64 @@ class Command(BaseCommand):
             project=project,
             target_type="RFI",
             target_id=answered_rfi.id,
+        )
+
+        Advertisement.objects.filter(name__startswith="Demo ·").delete()
+        Advertisement.objects.create(
+            name="Demo · Landing hero sponsor",
+            placement="landing_hero",
+            ad_type="house",
+            sponsor="SiteForge Labs",
+            headline="See every floor before it exists.",
+            body="The 3D site twin turns drawings, milestones and field data into one navigable model.",
+            cta_label="Explore the site twin",
+            link_url="https://example.test/siteforge/site-twin",
+            accent="#f59e0b",
+            priority=100,
+        )
+        Advertisement.objects.create(
+            name="Demo · Landing strip partner",
+            placement="landing_strip",
+            ad_type="house",
+            sponsor="Northwind Supply",
+            headline="Jobsite materials, staged ahead of schedule.",
+            body="Consolidated procurement with live delivery windows for every active project.",
+            cta_label="Request pricing",
+            link_url="https://example.test/northwind",
+            accent="#38bdf8",
+            priority=90,
+        )
+        Advertisement.objects.create(
+            name="Demo · Dashboard safety partner",
+            placement="dashboard_rail",
+            ad_type="house",
+            sponsor="Guardian Safety Co.",
+            headline="Cut incident reporting time by 40%.",
+            body="Wearable-free hazard capture that syncs straight into your SiteForge safety log.",
+            cta_label="Book a demo",
+            link_url="https://example.test/guardian",
+            accent="#22c55e",
+            priority=80,
+            organization=organization,
+        )
+        Advertisement.objects.create(
+            name="Demo · External snippet",
+            placement="dashboard_inline",
+            ad_type="external",
+            sponsor="Blueprint AI",
+            html_snippet=(
+                '<div style="font:14px/1.5 system-ui;padding:18px;border-radius:14px;'
+                'background:linear-gradient(135deg,#0f172a,#1e293b);color:#e2e8f0">'
+                '<strong style="display:block;font-size:15px;margin-bottom:4px">'
+                'Blueprint AI</strong>'
+                '<span style="color:#94a3b8">Automated drawing comparison for revision sets.</span>'
+                '<div style="margin-top:12px"><a href="https://example.test/blueprint" '
+                'style="color:#fbbf24;font-weight:600;text-decoration:none">See what changed →</a>'
+                "</div></div>"
+            ),
+            accent="#818cf8",
+            priority=70,
+            organization=organization,
         )
 
         self.stdout.write(self.style.SUCCESS("Seeded SiteForge demo data."))

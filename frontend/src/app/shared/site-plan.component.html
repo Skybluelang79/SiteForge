@@ -1,0 +1,176 @@
+<div class="plan">
+  <header class="plan-head">
+    <div>
+      <p class="eyebrow"><sf-icon name="grid" [size]="14" /> Portfolio site plan</p>
+      <h3>Live 2D delivery map</h3>
+    </div>
+    <ul class="legend" aria-label="Risk legend">
+      <li><i class="dot healthy"></i> Healthy</li>
+      <li><i class="dot watch"></i> Watch</li>
+      <li><i class="dot at_risk"></i> At risk</li>
+      <li><i class="dot critical"></i> Critical</li>
+    </ul>
+  </header>
+
+  <div class="canvas">
+    <svg
+      [attr.viewBox]="'0 0 860 ' + viewHeight"
+      role="img"
+      aria-label="Two dimensional site plan of projects coloured by delivery risk"
+    >
+      <defs>
+        <pattern id="plan-grid" width="22" height="22" patternUnits="userSpaceOnUse">
+          <path d="M 22 0 L 0 0 0 22" class="grid-line" />
+        </pattern>
+        <linearGradient id="plan-sheen" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" />
+          <stop offset="100%" stop-color="#f8fafc" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="860" [attr.height]="viewHeight" fill="url(#plan-sheen)" />
+      <rect x="0" y="0" width="860" [attr.height]="viewHeight" fill="url(#plan-grid)" />
+
+      <rect
+        class="boundary"
+        x="28"
+        y="44"
+        width="804"
+        [attr.height]="viewHeight - 82"
+        rx="18"
+      />
+      <rect
+        class="boundary-inner"
+        x="38"
+        y="54"
+        width="784"
+        [attr.height]="viewHeight - 102"
+        rx="13"
+      />
+
+      <g class="roads" aria-hidden="true">
+        <line x1="28" y1="72" x2="832" y2="72" />
+        <line x1="28" [attr.y1]="viewHeight - 54" x2="832" [attr.y2]="viewHeight - 54" />
+      </g>
+
+      @for (block of blocks(); track block.project.id) {
+        <g
+          class="footprint-group"
+          [attr.data-level]="block.level"
+          [class.selected]="selected?.id === block.project.id"
+          (click)="select(block.project)"
+          (keydown.enter)="select(block.project)"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="block.project.name + ' — ' + levelLabel(block.level) + ' risk'"
+        >
+          <rect
+            class="footprint-shadow"
+            [attr.x]="block.x + 3"
+            [attr.y]="block.y + 5"
+            [attr.width]="block.width"
+            [attr.height]="block.height"
+            rx="12"
+          />
+          <rect
+            class="footprint"
+            [attr.x]="block.x"
+            [attr.y]="block.y"
+            [attr.width]="block.width"
+            [attr.height]="block.height"
+            rx="12"
+          />
+          <rect
+            class="progress"
+            [attr.x]="block.x + 1"
+            [attr.y]="block.y + block.height - (block.progress / 100) * (block.height - 42)"
+            [attr.width]="block.width - 2"
+            [attr.height]="(block.progress / 100) * (block.height - 42)"
+            rx="8"
+          />
+          <rect
+            class="stripe"
+            [attr.x]="block.x"
+            [attr.y]="block.y"
+            [attr.width]="block.width"
+            height="4"
+            rx="2"
+          />
+
+          <text class="code" [attr.x]="block.x + 16" [attr.y]="block.y + 26">
+            {{ block.project.number || 'PRJ' }}
+          </text>
+          <text class="name" [attr.x]="block.x + 16" [attr.y]="block.y + 48">
+            {{ shortName(block.project.name) }}
+          </text>
+          <text class="meta" [attr.x]="block.x + 16" [attr.y]="block.y + 66">
+            {{ block.project.city || 'No location' }}{{ block.project.region ? ', ' + block.project.region : '' }}
+          </text>
+
+          <text class="progress-label" [attr.x]="block.x + 16" [attr.y]="block.y + block.height - 20">
+            {{ block.progress }}% complete
+          </text>
+          <text class="score" [attr.x]="block.x + block.width - 16" [attr.y]="block.y + 26" text-anchor="end">
+            {{ riskScore(block.project) }}
+          </text>
+
+          @if (block.project.overdue_items) {
+            <g [attr.transform]="'translate(' + (block.x + block.width - 26) + ',' + (block.y + block.height - 34) + ')'">
+              <circle class="alert-dot" r="13" />
+              <text class="alert-count" text-anchor="middle" y="4">
+                {{ block.project.overdue_items > 9 ? '9+' : block.project.overdue_items }}
+              </text>
+            </g>
+          }
+        </g>
+      }
+
+      @if (!projects.length) {
+        <text class="empty" x="430" [attr.y]="viewHeight / 2" text-anchor="middle">
+          No projects to map yet.
+        </text>
+      }
+
+      <g class="north" transform="translate(800, 24)" aria-hidden="true">
+        <circle r="13" />
+        <path d="M0 -8 L4 5 L0 2 L-4 5 Z" />
+        <text y="-17" text-anchor="middle">N</text>
+      </g>
+
+      <g class="scale" [attr.transform]="'translate(64,' + (viewHeight - 22) + ')'" aria-hidden="true">
+        <line x1="0" y1="0" x2="80" y2="0" />
+        <line x1="0" y1="-4" x2="0" y2="4" />
+        <line x1="40" y1="-3" x2="40" y2="3" />
+        <line x1="80" y1="-4" x2="80" y2="4" />
+        <text x="0" y="-8">0</text>
+        <text x="80" y="-8" text-anchor="middle">100 m</text>
+      </g>
+    </svg>
+  </div>
+
+  @if (selected; as project) {
+    <footer class="detail">
+      <div class="detail-main">
+        <span class="level-dot" [attr.data-level]="project.risk_level || 'healthy'"></span>
+        <div>
+          <strong>{{ project.name }}</strong>
+          <small>
+            {{ project.number || 'No number' }}
+            @if (project.target_completion_date) {
+              · target {{ project.target_completion_date }}
+            }
+          </small>
+        </div>
+      </div>
+      <div class="detail-stats">
+        <span><b>{{ project.percent_complete ?? 0 }}%</b> complete</span>
+        <span><b>{{ project.open_items ?? 0 }}</b> open</span>
+        <span class="danger"><b>{{ project.overdue_items ?? 0 }}</b> overdue</span>
+        <span><b>{{ money(project.contract_value) }}</b> contract</span>
+        <button type="button" class="open" (click)="select(project)">
+          Open <sf-icon name="arrow-right" [size]="13" />
+        </button>
+      </div>
+    </footer>
+  }
+</div>

@@ -1,11 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 
 import { ApiService } from '../../core/api.service';
+import { AssistantUiService } from '../../core/assistant-ui.service';
 import { AuthService } from '../../core/auth.service';
+import { AdSlotComponent } from '../../shared/ad-slot.component';
+import { SitePlanComponent, SitePlanProject } from '../../shared/site-plan.component';
 import { IconComponent } from '../../shared/icon.component';
-import { SitePlanComponent, SitePlanData } from './site-plan.component';
 
 interface Kpis {
   active_projects: number;
@@ -22,58 +23,12 @@ interface Kpis {
   pending_change_orders: number;
 }
 
-interface HealthDimension {
-  key: string;
-  label: string;
-  score: number;
-}
-
-interface HealthProject {
-  id: string;
-  name: string;
-  code?: string;
-  status: string;
-  score: number;
-  health_status: string;
-  trend: string;
-  percent_complete: number;
-  dimensions: HealthDimension[];
-  spend_ratio: number;
-  open_tasks: number;
-  overdue_tasks: number;
-  open_rfis: number;
-  overdue_rfis: number;
-  safety_incidents_90d: number;
-  pending_change_orders: number;
-}
-
-interface Health {
-  score: number;
-  status: string;
-  dimensions: HealthDimension[];
-  projects: HealthProject[];
-}
-
-interface RiskInsight {
-  id: string;
-  severity: string;
-  category: string;
-  category_label: string;
-  title: string;
-  detail: string;
-  project_id: string;
-  project_name: string;
-  metric: number;
-  metric_label: string;
-  action_label: string;
-  action_route: string;
-}
-
 interface Milestone {
   id: string;
   name: string;
   due_date: string;
   status: string;
+  project?: string;
 }
 
 interface Project {
@@ -84,39 +39,56 @@ interface Project {
   city?: string;
   region?: string;
   percent_complete?: number;
-  health_status?: string;
-  health_score?: number;
+  risk_level?: string;
+  risk_score?: number;
+  overdue_items?: number;
+  open_items?: number;
+  contract_value?: number;
 }
 
-interface Promotion {
-  id: string;
-  eyebrow: string;
+interface HealthSignal {
+  label: string;
+  value: number;
+  severity: string;
+  hint: string;
+}
+
+interface Risk {
+  project_id: string;
+  project: string;
   title: string;
-  body: string;
-  cta: string;
-  route: string;
-  tone: string;
+  detail: string;
+  category: string;
+  severity: string;
 }
 
 interface DashboardResponse {
   kpis: Kpis;
-  health: Health;
-  risk_insights: RiskInsight[];
-  site_plan: SitePlanData | null;
   milestones_due_soon: Milestone[];
   projects: Project[];
-  promotions: Promotion[];
+  site_plan: SitePlanProject[];
+  health: {
+    score: number;
+    label: string;
+    headline: string;
+    projects_at_risk: number;
+    signals: HealthSignal[];
+    risks: Risk[];
+    counts: { healthy: number; watch: number; at_risk: number; critical: number };
+  };
 }
 
 @Component({
   selector: 'sf-dashboard',
-  imports: [RouterLink, IconComponent, SitePlanComponent],
+  imports: [RouterLink, SitePlanComponent, AdSlotComponent, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly router = inject(Router);
+  private readonly assistant = inject(AssistantUiService);
   readonly auth = inject(AuthService);
 
   readonly data = signal<DashboardResponse | null>(null);
@@ -128,17 +100,14 @@ export class DashboardComponent {
     day: 'numeric',
   });
 
-  constructor() {
-    toObservable(this.auth.activeProjectId)
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.load());
+  ngOnInit(): void {
+    this.load();
   }
 
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    const project = this.auth.activeProjectId();
-    this.api.get<DashboardResponse>('dashboard/', project ? { project } : {}).subscribe({
+    this.api.get<DashboardResponse>('dashboard/').subscribe({
       next: (response) => {
         this.data.set(response);
         this.loading.set(false);
@@ -148,6 +117,19 @@ export class DashboardComponent {
         this.loading.set(false);
       },
     });
+  }
+
+  openCopilot(prompt?: string): void {
+    if (prompt) {
+      this.assistant.ask(prompt);
+    } else {
+      this.assistant.show();
+    }
+  }
+
+  openProject(project: SitePlanProject): void {
+    this.auth.selectProject(project.id);
+    void this.router.navigate(['/projects', project.id]);
   }
 
   money(value: number | undefined): string {
@@ -190,44 +172,13 @@ export class DashboardComponent {
     return this.auth.user()?.first_name || this.auth.user()?.email?.split('@')[0] || 'there';
   }
 
-  healthLabel(status: string | undefined): string {
-    const labels: Record<string, string> = {
-      healthy: 'Healthy',
-      at_risk: 'At risk',
-      critical: 'Critical',
-    };
-    return labels[status ?? ''] ?? 'Unknown';
-  }
-
-  healthColor(status: string | undefined): string {
-    const colors: Record<string, string> = {
-      healthy: '#22c55e',
-      at_risk: '#f59e0b',
-      critical: '#ef4444',
-    };
-    return colors[status ?? ''] ?? '#94a3b8';
-  }
-
-  ringBackground(score: number, status: string): string {
-    const angle = Math.max(0, Math.min(100, score)) * 3.6;
-    return `conic-gradient(${this.healthColor(status)} ${angle}deg, #eef2f7 ${angle}deg)`;
-  }
-
-  severityLabel(severity: string): string {
-    const labels: Record<string, string> = {
-      critical: 'Critical',
-      high: 'High',
-      medium: 'Medium',
-      low: 'Low',
-    };
-    return labels[severity] ?? severity;
-  }
-
-  scoreTone(score: number): string {
-    return score >= 80 ? 'healthy' : score >= 60 ? 'at_risk' : 'critical';
-  }
-
-  trackProject(_index: number, project: Project): string {
-    return project.id;
+  healthTone(label: string | undefined): string {
+    if (label === 'critical' || label === 'at_risk') {
+      return 'danger';
+    }
+    if (label === 'watch') {
+      return 'warn';
+    }
+    return 'good';
   }
 }

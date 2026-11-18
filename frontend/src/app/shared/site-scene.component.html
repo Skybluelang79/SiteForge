@@ -1,0 +1,30 @@
+<div class="scene" [class.compact]="compact">
+  <canvas #canvas aria-label="Interactive 3D construction site model"></canvas>
+  <div class="glow" aria-hidden="true"></div>
+  <div class="scan" aria-hidden="true"></div>
+
+  <div class="scene-top">
+    <span class="live"><i></i> Live site twin</span>
+    @if (!compact) {
+      <span class="coords">42.3601° N · 71.0589° W</span>
+    }
+  </div>
+
+  @if (showTags && !compact) {
+    <div class="tags" aria-hidden="true">
+      <span class="tag tag-a"><i></i> Tower A · L7</span>
+      <span class="tag tag-b"><i></i> Crane T-02</span>
+      <span class="tag tag-c"><i></i> Laydown yard</span>
+    </div>
+  }
+
+  <div class="controls">
+    <button type="button" (click)="zoomIn()" aria-label="Zoom in"><sf-icon name="plus" [size]="15" /></button>
+    <button type="button" (click)="zoomOut()" aria-label="Zoom out"><sf-icon name="minus" [size]="15" /></button>
+    <button type="button" (click)="reset()" aria-label="Reset view"><sf-icon name="rotate" [size]="15" /></button>
+  </div>
+
+  @if (!compact) {
+    <div class="hint">Drag to orbit · Ctrl + scroll to zoom</div>
+  }
+</div>

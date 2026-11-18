@@ -58,111 +58,132 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
         @case ('bell') {
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />
         }
-        @case ('edit') {
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+        @case ('building') {
+          <path d="M3 21h18M5 21V5a2 2 0 012-2h6a2 2 0 012 2v16M15 9h2a2 2 0 012 2v10M9 7h2M9 11h2M9 15h2" />
         }
-        @case ('image') {
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <polyline points="21 15 16 10 5 21" />
+        @case ('cube') {
+          <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+          <path d="M3.27 6.96L12 12l8.73-5.04M12 22.08V12" />
         }
-        @case ('type') {
-          <polyline points="4 7 4 4 20 4 20 7" />
-          <line x1="9" y1="20" x2="15" y2="20" />
-          <line x1="12" y1="4" x2="12" y2="20" />
+        @case ('pen-tool') {
+          <path d="M12 19l7-7 3 3-7 7-3-3z" />
+          <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+          <path d="M2 2l7.586 7.586" />
+          <circle cx="11" cy="11" r="2" />
         }
-        @case ('square') {
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        @case ('sparkles') {
+          <path d="M12 3l1.8 4.6L18.5 9.5l-4.7 1.9L12 16l-1.8-4.6L5.5 9.5l4.7-1.9L12 3z" />
+          <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15zM5 2l.6 1.5L7 4l-1.4.5L5 6l-.6-1.5L3 4l1.4-.5L5 2z" />
         }
-        @case ('circle') {
-          <circle cx="12" cy="12" r="9" />
+        @case ('megaphone') {
+          <path d="M3 11l18-7-4 14-6-3-4 3-2-4-2-3z" />
+          <path d="M8 14l1.5 5" />
         }
-        @case ('triangle') {
-          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+        @case ('arrow-right') {
+          <path d="M5 12h14M13 6l6 6-6 6" />
         }
-        @case ('layers') {
-          <polygon points="12 2 2 7 12 12 22 7 12 2" />
-          <polyline points="2 17 12 22 22 17" />
-          <polyline points="2 12 12 17 22 12" />
+        @case ('arrow-left') {
+          <path d="M19 12H5M11 18l-6-6 6-6" />
         }
-        @case ('grid') {
-          <rect x="3" y="3" width="7" height="7" />
-          <rect x="14" y="3" width="7" height="7" />
-          <rect x="14" y="14" width="7" height="7" />
-          <rect x="3" y="14" width="7" height="7" />
+        @case ('calendar') {
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
         }
-        @case ('trash') {
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-          <line x1="10" y1="11" x2="10" y2="17" />
-          <line x1="14" y1="11" x2="14" y2="17" />
+        @case ('alert-triangle') {
+          <path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h16.9a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
+          <path d="M12 9v4M12 17h.01" />
+        }
+        @case ('trending-up') {
+          <path d="M23 6l-9.5 9.5-5-5L1 18" />
+          <path d="M17 6h6v6" />
+        }
+        @case ('send') {
+          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+        }
+        @case ('menu') {
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        }
+        @case ('x') {
+          <path d="M18 6L6 18M6 6l12 12" />
+        }
+        @case ('plus') {
+          <path d="M12 5v14M5 12h14" />
+        }
+        @case ('minus') {
+          <path d="M5 12h14" />
         }
         @case ('download') {
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+        }
+        @case ('trash') {
+          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6" />
+        }
+        @case ('undo') {
+          <path d="M3 7v6h6" />
+          <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6.4 2.6L3 13" />
+        }
+        @case ('redo') {
+          <path d="M21 7v6h-6" />
+          <path d="M3 17a9 9 0 019-9 9 9 0 016.4 2.6L21 13" />
         }
         @case ('save') {
           <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-          <polyline points="17 21 17 13 7 13 7 21" />
-          <polyline points="7 3 7 8 15 8" />
+          <path d="M17 21v-8H7v8M7 3v5h8" />
+        }
+        @case ('grid') {
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        }
+        @case ('ruler') {
+          <path d="M3 17l14-14 4 4L7 21l-4-4z" />
+          <path d="M7 13l2 2M10 10l2 2M13 7l2 2" />
         }
         @case ('mouse-pointer') {
           <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
           <path d="M13 13l6 6" />
         }
+        @case ('pencil') {
+          <path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+        }
+        @case ('line') {
+          <path d="M5 19L19 5" />
+          <circle cx="5" cy="19" r="1.5" />
+          <circle cx="19" cy="5" r="1.5" />
+        }
+        @case ('square') {
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+        }
+        @case ('eraser') {
+          <path d="M20 20H9l-5-5a2 2 0 010-2.8l8.2-8.2a2 2 0 012.8 0l4 4a2 2 0 010 2.8L11 19" />
+          <path d="M6.5 11.5L15 20" />
+        }
+        @case ('hand') {
+          <path d="M18 11V6a2 2 0 00-4 0v5M14 10V4a2 2 0 00-4 0v6M10 10V6a2 2 0 00-4 0v8" />
+          <path d="M18 8a2 2 0 014 0v6a8 8 0 01-8 8h-2a8 8 0 01-8-8v-1a2 2 0 014 0" />
+        }
+        @case ('rotate') {
+          <path d="M23 4v6h-6M1 20v-6h6" />
+          <path d="M3.5 9a9 9 0 0114.9-3.3L23 10M1 14l4.6 4.3A9 9 0 0020.5 15" />
+        }
+        @case ('compass') {
+          <circle cx="12" cy="12" r="10" />
+          <path d="M16.2 7.8l-2.1 6.3-6.3 2.1 2.1-6.3 6.3-2.1z" />
+        }
+        @case ('layers') {
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+        }
         @case ('search') {
           <circle cx="11" cy="11" r="7" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          <path d="M21 21l-4.3-4.3" />
         }
         @case ('command') {
           <path d="M18 3a3 3 0 00-3 3v12a3 3 0 003 3 3 3 0 003-3 3 3 0 00-3-3H6a3 3 0 00-3 3 3 3 0 003 3 3 3 0 003-3V6a3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3h12a3 3 0 003-3 3 3 0 00-3-3z" />
         }
-        @case ('x') {
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        }
-        @case ('send') {
-          <line x1="22" y1="2" x2="11" y2="13" />
-          <polygon points="22 2 15 22 11 13 2 9 22 2" />
-        }
-        @case ('sparkles') {
-          <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z" />
-          <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
-          <path d="M5 14l.6 1.4L7 16l-1.4.6L5 18l-.6-1.4L3 16l1.4-.6L5 14z" />
-        }
-        @case ('arrow-right') {
-          <line x1="5" y1="12" x2="19" y2="12" />
-          <polyline points="12 5 19 12 12 19" />
-        }
-        @case ('arrow-up') {
-          <line x1="12" y1="19" x2="12" y2="5" />
-          <polyline points="5 12 12 5 19 12" />
-        }
-        @case ('alert-triangle') {
-          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        }
         @case ('activity') {
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-        }
-        @case ('map') {
-          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-          <line x1="8" y1="2" x2="8" y2="18" />
-          <line x1="16" y1="6" x2="16" y2="22" />
-        }
-        @case ('plus') {
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        }
-        @case ('chevron-down') {
-          <polyline points="6 9 12 15 18 9" />
-        }
-        @case ('clock') {
-          <circle cx="12" cy="12" r="9" />
-          <polyline points="12 7 12 12 15.5 14" />
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         }
         @default {
           <circle cx="12" cy="12" r="3" />

@@ -1,16 +1,45 @@
 <div class="login-page">
   <section class="visual">
     <div class="visual-inner">
-      <div class="brand">
-        <span class="mark">SF</span>
-        <span>SiteForge</span>
+      <header class="visual-header">
+        <div class="brand">
+          <span class="mark">SF</span>
+          <span>SiteForge</span>
+        </div>
+        <span class="platform-tag">Construction OS</span>
+      </header>
+
+      <div class="hero-copy">
+        <p class="kicker">Plan · Coordinate · Deliver</p>
+        <h1>Build with clarity.<br />Deliver with confidence.</h1>
+        <p class="intro">
+          One operating system for projects, field teams, documents, quality, and commercial control —
+          from mobilisation to closeout.
+        </p>
       </div>
-      <h1>Build with clarity.<br />Deliver with confidence.</h1>
-      <p>
-        One operating system for projects, field teams, documents, quality, and commercial control —
-        from mobilisation to closeout.
-      </p>
-      <div class="stats">
+
+      <figure class="hero-visual">
+        <div class="frame">
+          <img
+            src="assets/images/construction-3d.svg"
+            alt="3D construction site visualization showing a tower crane, glass tower, and active build zones"
+            width="960"
+            height="620"
+            loading="eager"
+            decoding="async"
+          />
+          <div class="frame-overlay" aria-hidden="true"></div>
+          <div class="frame-meta">
+            <span class="meta-pill live"><i></i> Live 3D coordination</span>
+            <span class="meta-pill">BIM-ready context</span>
+          </div>
+        </div>
+        <figcaption>
+          <span><strong>Visualize</strong> progress, risk and site activity in a single command view.</span>
+        </figcaption>
+      </figure>
+
+      <div class="stats" aria-label="Platform highlights">
         <div><strong>360°</strong><span>Project visibility</span></div>
         <div><strong>12</strong><span>Operational modules</span></div>
         <div><strong>1</strong><span>Source of truth</span></div>
@@ -20,68 +49,72 @@
   </section>
 
   <section class="form-side">
-    <div class="form-card">
-      <p class="eyebrow">{{ mfaStep() ? 'Two-factor authentication' : 'Welcome back' }}</p>
-      <h2>{{ mfaStep() ? 'Enter your code' : 'Sign in to SiteForge' }}</h2>
-      <p class="lede">
-        @if (mfaStep()) {
-          Open your authenticator app and enter the six-digit code for your account.
+    <div class="form-wrap">
+      <div class="form-card">
+        <p class="eyebrow">{{ mfaStep() ? 'Two-factor authentication' : 'Welcome back' }}</p>
+        <h2>{{ mfaStep() ? 'Enter your code' : 'Sign in to SiteForge' }}</h2>
+        <p class="lede">
+          @if (mfaStep()) {
+            Open your authenticator app and enter the six-digit code for your account.
+          } @else {
+            Use your workspace credentials to continue.
+          }
+        </p>
+
+        @if (!mfaStep()) {
+          <form (submit)="submit(emailInput.value, passwordInput.value); $event.preventDefault()">
+            <label>
+              <span>Email address</span>
+              <input #emailInput type="email" name="email" autocomplete="username" placeholder="you@company.com" />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                #passwordInput
+                type="password"
+                name="password"
+                autocomplete="current-password"
+                placeholder="••••••••"
+              />
+            </label>
+            @if (error()) {
+              <div class="alert" role="alert">{{ error() }}</div>
+            }
+            <button class="primary" type="submit" [disabled]="loading()">
+              {{ loading() ? 'Signing in…' : 'Sign in' }}
+            </button>
+          </form>
         } @else {
-          Use your workspace credentials to continue.
+          <form (submit)="verify(codeInput.value); $event.preventDefault()">
+            <label>
+              <span>Authenticator code</span>
+              <input
+                #codeInput
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="12"
+                placeholder="000000"
+                class="code"
+              />
+            </label>
+            @if (error()) {
+              <div class="alert" role="alert">{{ error() }}</div>
+            }
+            <button class="primary" type="submit" [disabled]="loading()">
+              {{ loading() ? 'Verifying…' : 'Verify and continue' }}
+            </button>
+            <button class="secondary" type="button" (click)="back()">Back to sign in</button>
+          </form>
         }
-      </p>
 
-      @if (!mfaStep()) {
-        <form (submit)="submit(emailInput.value, passwordInput.value); $event.preventDefault()">
-          <label>
-            <span>Email address</span>
-            <input #emailInput type="email" name="email" autocomplete="username" placeholder="you@company.com" />
-          </label>
-          <label>
-            <span>Password</span>
-            <input
-              #passwordInput
-              type="password"
-              name="password"
-              autocomplete="current-password"
-              placeholder="••••••••••"
-            />
-          </label>
-          @if (error()) {
-            <div class="alert">{{ error() }}</div>
-          }
-          <button class="primary" type="submit" [disabled]="loading()">
-            {{ loading() ? 'Signing in…' : 'Sign in' }}
-          </button>
-        </form>
-      } @else {
-        <form (submit)="verify(codeInput.value); $event.preventDefault()">
-          <label>
-            <span>Authenticator code</span>
-            <input
-              #codeInput
-              type="text"
-              inputmode="numeric"
-              autocomplete="one-time-code"
-              maxlength="12"
-              placeholder="000000"
-              class="code"
-            />
-          </label>
-          @if (error()) {
-            <div class="alert">{{ error() }}</div>
-          }
-          <button class="primary" type="submit" [disabled]="loading()">
-            {{ loading() ? 'Verifying…' : 'Verify and continue' }}
-          </button>
-          <button class="secondary" type="button" (click)="back()">Back to sign in</button>
-        </form>
-      }
-
-      <div class="demo">
-        <strong>Demo workspace</strong>
-        <span>owner@demo.siteforge.test · DemoPass123!</span>
+        <div class="demo">
+          <strong>Demo workspace</strong>
+          <span>owner@demo.siteforge.test · DemoPass123!</span>
+        </div>
       </div>
+
+      <sf-ad-slot placement="landing_hero" variant="strip" [fallback]="true"></sf-ad-slot>
     </div>
   </section>
 </div>

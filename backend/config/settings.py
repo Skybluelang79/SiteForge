@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     "storages",
     # First-party
     "apps.common",
-    "apps.assistant",
     "apps.accounts",
     "apps.organizations",
     "apps.projects",
@@ -74,6 +73,8 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.integrations",
     "apps.notifications",
+    "apps.ads",
+    "apps.assistant",
     "apps.audit",
     "seed",
 ]
@@ -289,7 +290,7 @@ REST_FRAMEWORK = {
         "user": f"{env.int('THROTTLE_USER', default=600)}/min",
         "auth": "20/min",
         "uploads": "60/min",
-        "assistant": f"{env.int('THROTTLE_ASSISTANT', default=30)}/min",
+        "assistant": f"{env.int('THROTTLE_ASSISTANT', default=40)}/min",
     },
     "EXCEPTION_HANDLER": "apps.common.exceptions.api_exception_handler",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
@@ -319,7 +320,8 @@ SPECTACULAR_SETTINGS = {
         {"name": "notifications", "description": "User notifications"},
         {"name": "admin", "description": "Administrative console"},
         {"name": "dashboard", "description": "Dashboards"},
-        {"name": "assistant", "description": "AI copilot grounded in workspace data"},
+        {"name": "ads", "description": "Advertising placements and delivery"},
+        {"name": "assistant", "description": "AI project assistant"},
     ],
 }
 
@@ -388,13 +390,11 @@ DOWNLOAD_URL_TTL_SECONDS = env.int("DOWNLOAD_URL_TTL_SECONDS", default=300)
 DEFAULT_ORG_ROLE = "member"
 
 # ---------------------------------------------------------------------------
-# AI copilot (OpenAI-compatible chat completions)
+# AI assistant (OpenAI-compatible provider with a deterministic fallback)
 # ---------------------------------------------------------------------------
+AI_PROVIDER = env("AI_PROVIDER", default="openai")
 AI_API_KEY = env("AI_API_KEY", default="")
-AI_ENABLED = env.bool("AI_ENABLED", default=bool(AI_API_KEY))
 AI_BASE_URL = env("AI_BASE_URL", default="https://api.openai.com/v1")
-AI_MODEL = env("AI_MODEL", default="gpt-4.1-mini")
-AI_TIMEOUT_SECONDS = env.int("AI_TIMEOUT_SECONDS", default=30)
-AI_MAX_TOKENS = env.int("AI_MAX_TOKENS", default=900)
-AI_TEMPERATURE = env.float("AI_TEMPERATURE", default=0.2)
-AI_MAX_HISTORY = env.int("AI_MAX_HISTORY", default=10)
+AI_MODEL = env("AI_MODEL", default="gpt-4o-mini")
+AI_TIMEOUT_SECONDS = env.int("AI_TIMEOUT_SECONDS", default=25)
+ASSISTANT_MAX_HISTORY = env.int("ASSISTANT_MAX_HISTORY", default=10)

@@ -1,0 +1,47 @@
+@if (open()) {
+  <div class="palette-layer" role="dialog" aria-modal="true" aria-label="Command palette">
+    <button class="backdrop" type="button" aria-label="Close command palette" (click)="close()"></button>
+
+    <section class="palette">
+      <header class="search-row">
+        <sf-icon name="search" [size]="16" />
+        <input
+          #search
+          type="text"
+          [value]="query()"
+          (input)="updateQuery($any($event.target).value)"
+          placeholder="Search projects, pages or ask Copilot..."
+          aria-label="Search commands"
+        />
+        <span class="kbd">Esc</span>
+      </header>
+
+      <div class="results" role="listbox">
+        @for (command of results(); track command.id; let i = $index) {
+          <button
+            type="button"
+            class="item"
+            [class.active]="i === cursor()"
+            (mouseenter)="cursor.set(i)"
+            (click)="run(command)"
+          >
+            <span class="item-icon"><sf-icon [name]="command.icon" [size]="15" /></span>
+            <span class="item-copy">
+              <strong>{{ command.label }}</strong>
+              <small>{{ command.hint }}</small>
+            </span>
+            <span class="item-group">{{ command.group }}</span>
+          </button>
+        } @empty {
+          <p class="empty">No matching commands.</p>
+        }
+      </div>
+
+      <footer class="hint">
+        <span><b>↑↓</b> navigate</span>
+        <span><b>↵</b> open</span>
+        <span><b>Ctrl K</b> toggle</span>
+      </footer>
+    </section>
+  </div>
+}

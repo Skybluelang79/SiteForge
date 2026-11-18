@@ -1,27 +1,21 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  HostListener,
-  OnDestroy,
-  OnInit,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
+import { AssistantUiService } from '../core/assistant-ui.service';
 import { NotificationService } from '../core/notification.service';
 import { NotificationSocketService } from '../core/notification-socket.service';
+import { AiAssistantComponent } from '../shared/ai-assistant.component';
+import { CommandPaletteComponent } from '../shared/command-palette.component';
 import { IconComponent } from '../shared/icon.component';
-import { CommandPaletteComponent } from './command-palette.component';
-import { CopilotComponent } from './copilot.component';
 
 interface ProjectSummary {
   id: string;
   name: string;
   code?: string;
+  number?: string;
   status?: string;
 }
 
@@ -33,8 +27,8 @@ interface ProjectSummary {
     RouterLinkActive,
     DatePipe,
     IconComponent,
+    AiAssistantComponent,
     CommandPaletteComponent,
-    CopilotComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell.component.html',
@@ -45,18 +39,16 @@ export class ShellComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   readonly notifications = inject(NotificationService);
   private readonly notificationSocket = inject(NotificationSocketService);
+  readonly assistant = inject(AssistantUiService);
 
   readonly projects = signal<ProjectSummary[]>([]);
   readonly mobileOpen = signal(false);
   readonly projectsError = signal(false);
   readonly notificationOpen = signal(false);
-  readonly paletteOpen = signal(false);
-  readonly copilotOpen = signal(false);
 
   readonly nav = [
     { path: '/dashboard', label: 'Overview', icon: 'home' },
     { path: '/projects', label: 'Projects', icon: 'users' },
-    { path: '/design/canvas', label: 'Design Canvas', icon: 'edit' },
     { path: '/documents', label: 'Documents', icon: 'file-text' },
     { path: '/drawings', label: 'Drawings', icon: 'folder' },
     { path: '/field', label: 'Field ops', icon: 'shield-check' },
@@ -115,6 +107,10 @@ export class ShellComponent implements OnInit, OnDestroy {
     }
   }
 
+  openCopilot(): void {
+    this.assistant.show();
+  }
+
   closeNotifications(): void {
     this.notificationOpen.set(false);
   }
@@ -128,47 +124,6 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   markAllNotificationsRead(): void {
     this.notifications.markAllRead().subscribe({ error: () => undefined });
-  }
-
-  openPalette(): void {
-    this.notificationOpen.set(false);
-    this.paletteOpen.set(true);
-  }
-
-  openCopilot(): void {
-    this.paletteOpen.set(false);
-    this.notificationOpen.set(false);
-    this.copilotOpen.set(true);
-  }
-
-  onPaletteAction(action: string): void {
-    if (action === 'copilot') {
-      this.openCopilot();
-      return;
-    }
-    if (action === 'notifications') {
-      this.notificationOpen.set(true);
-      this.notifications.load({ page_size: 20 }).subscribe({ error: () => undefined });
-    }
-  }
-
-  @HostListener('window:keydown', ['$event'])
-  onGlobalKeydown(event: KeyboardEvent): void {
-    const modifier = event.metaKey || event.ctrlKey;
-    if (modifier && event.key.toLowerCase() === 'k') {
-      event.preventDefault();
-      this.paletteOpen.update((open) => !open);
-      return;
-    }
-    if (modifier && event.key.toLowerCase() === 'j') {
-      event.preventDefault();
-      this.copilotOpen.update((open) => !open);
-      return;
-    }
-    if (event.key === 'Escape') {
-      this.paletteOpen.set(false);
-      this.copilotOpen.set(false);
-    }
   }
 
   displayName(): string {
