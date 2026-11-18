@@ -679,6 +679,18 @@ class Command(BaseCommand):
             priority=90,
         )
         Advertisement.objects.create(
+            name="Demo · Login aside partner",
+            placement="login_aside",
+            ad_type="house",
+            sponsor="SiteForge Partners",
+            headline="Your brand, where projects happen.",
+            body="Reach builders, owners and field teams across the SiteForge network. Reserve this advertisement space for your brand.",
+            cta_label="Advertise with us",
+            link_url="https://siteforge.io/advertise",
+            accent="#f59e0b",
+            priority=100,
+        )
+        Advertisement.objects.create(
             name="Demo · Dashboard safety partner",
             placement="dashboard_rail",
             ad_type="house",

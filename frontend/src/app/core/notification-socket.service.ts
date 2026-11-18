@@ -22,11 +22,21 @@ export class NotificationSocketService implements OnDestroy {
     if (!token) {
       return;
     }
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const host = window.location.hostname;
-    const port = window.location.port;
-    // In dev with ng serve proxying /api, but ws needs direct backend. Try same host:8000 as fallback, else same host+port
-    const wsUrl = port && port !== '80' && port !== '443' ? `${protocol}://${host}:${port}/ws/notifications/?token=${encodeURIComponent(token)}` : `${protocol}://${host}:8000/ws/notifications/?token=${encodeURIComponent(token)}`;
+    const cfg = (globalThis as any).__sf || {};
+    let wsUrl: string;
+    if (cfg.wsBase) {
+      wsUrl = `${String(cfg.wsBase).replace(/\/$/, '')}/ws/notifications/?token=${encodeURIComponent(token)}`;
+    } else {
+      const apiRoot = String(cfg.apiRoot || '/api/v1');
+      if (/^https?:/i.test(apiRoot)) {
+        const u = new URL(apiRoot, window.location.origin);
+        const wsProtocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${wsProtocol}//${u.host}/ws/notifications/?token=${encodeURIComponent(token)}`;
+      } else {
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        wsUrl = `${protocol}://${window.location.host}/ws/notifications/?token=${encodeURIComponent(token)}`;
+      }
+    }
     this.socket = new WebSocket(wsUrl);
     this.socket.onopen = () => {
       this.reconnectAttempts = 0;

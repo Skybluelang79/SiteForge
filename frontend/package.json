@@ -5,6 +5,7 @@
   "scripts": {
     "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
+    "vercel-build": "node scripts/write-runtime-config.js && ng build",
     "test": "ng test"
   },
   "dependencies": {

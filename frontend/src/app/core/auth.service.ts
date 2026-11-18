@@ -3,7 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 
-export const API_ROOT = '/api/v1';
+export const API_ROOT = (globalThis as any).__sf?.apiRoot || '/api/v1';
 
 export interface User {
   id: string;

@@ -36,7 +36,7 @@ export class OrganizationComponent {
   load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.list<Record<string, unknown>>('memberships/', { page_size: 200 }).subscribe({
+    this.api.list<Record<string, unknown>>('organizations/memberships/', { page_size: 200 }).subscribe({
       next: (page) => {
         this.members.set(page.results);
         this.loading.set(false);
@@ -46,7 +46,7 @@ export class OrganizationComponent {
         this.loading.set(false);
       },
     });
-    this.api.list<Record<string, unknown>>('invitations/', { page_size: 200 }).subscribe({
+    this.api.list<Record<string, unknown>>('organizations/invitations/', { page_size: 200 }).subscribe({
       next: (page) => this.invitations.set(page.results),
       error: () => undefined,
     });
@@ -61,7 +61,7 @@ export class OrganizationComponent {
     this.inviteError.set('');
     this.inviteSuccess.set(false);
     this.api
-      .post('invitations/', { email: this.inviteEmail().trim(), role_code: this.inviteRole() })
+      .post('organizations/invitations/', { email: this.inviteEmail().trim(), role_code: this.inviteRole() })
       .subscribe({
         next: () => {
           this.inviting.set(false);
@@ -78,7 +78,7 @@ export class OrganizationComponent {
   }
 
   revoke(invitation: Record<string, unknown>): void {
-    this.api.post(`invitations/${invitation['id']}/revoke/`, {}).subscribe({
+    this.api.post(`organizations/invitations/${invitation['id']}/revoke/`, {}).subscribe({
       next: () => this.load(),
       error: (err) => this.error.set(this.api.errorMessage(err)),
     });

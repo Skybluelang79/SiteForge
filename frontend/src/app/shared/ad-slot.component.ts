@@ -60,15 +60,15 @@ interface Ad {
       }
     } @else if (fallback) {
       <aside class="ad fallback" [class]="'ad fallback ' + variant">
-        <span class="ad-label">Partner space</span>
-        <div class="house">
+        <span class="ad-label">Ad space</span>
+        <a class="house" href="mailto:ads@siteforge.io?subject=Advertise%20on%20SiteForge">
           <span class="copy">
             <span class="sponsor">SiteForge network</span>
-            <strong>Put your brand on every jobsite.</strong>
-            <span class="body">Reach owners, builders and trade partners across the SiteForge network.</span>
+            <strong>Your brand on every jobsite.</strong>
+            <span class="body">Reach owners, builders and trade partners across SiteForge. This advertisement space is available.</span>
             <span class="cta">Advertise with us <sf-icon name="arrow-right" [size]="13" /></span>
           </span>
-        </div>
+        </a>
       </aside>
     }
   `,

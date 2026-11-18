@@ -19,23 +19,11 @@
       </div>
 
       <figure class="hero-visual">
-        <div class="frame">
-          <img
-            src="assets/images/construction-3d.svg"
-            alt="3D construction site visualization showing a tower crane, glass tower, and active build zones"
-            width="960"
-            height="620"
-            loading="eager"
-            decoding="async"
-          />
-          <div class="frame-overlay" aria-hidden="true"></div>
-          <div class="frame-meta">
-            <span class="meta-pill live"><i></i> Live 3D coordination</span>
-            <span class="meta-pill">BIM-ready context</span>
-          </div>
+        <div class="frame scene-frame">
+          <sf-site-scene [showTags]="true"></sf-site-scene>
         </div>
         <figcaption>
-          <span><strong>Visualize</strong> progress, risk and site activity in a single command view.</span>
+          <span><strong>Visualize</strong> progress, risk and site activity in an interactive 3D command view. Drag to orbit, zoom to inspect.</span>
         </figcaption>
       </figure>
 
@@ -114,7 +102,7 @@
         </div>
       </div>
 
-      <sf-ad-slot placement="landing_hero" variant="strip" [fallback]="true"></sf-ad-slot>
+      <sf-ad-slot placement="login_aside" variant="card" [fallback]="true"></sf-ad-slot>
     </div>
   </section>
 </div>

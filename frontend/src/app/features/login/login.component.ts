@@ -4,10 +4,11 @@ import { Router } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { AdSlotComponent } from '../../shared/ad-slot.component';
+import { SiteSceneComponent } from '../../shared/site-scene.component';
 
 @Component({
   selector: 'sf-login',
-  imports: [AdSlotComponent],
+  imports: [AdSlotComponent, SiteSceneComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
