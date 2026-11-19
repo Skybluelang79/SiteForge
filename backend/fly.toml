@@ -1,4 +1,4 @@
-﻿app = "siteforge-api"
+app = "siteforge-api"
 primary_region = "iad"
 
 [build]
