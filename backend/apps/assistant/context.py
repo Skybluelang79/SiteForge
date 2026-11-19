@@ -23,13 +23,13 @@ def build_context(request, project_id=None):
     project_ids = list(
         projects_for_user(request.user, organization.id).values_list("id", flat=True)
     )
-    projects = Project.objects.filter(id__in=project_ids).select_related("project_manager")
+    all_projects = Project.objects.filter(id__in=project_ids).select_related("project_manager")
+    projects = all_projects
     if project_id:
         projects = projects.filter(id=project_id)
-
-    scope_project = projects.first() if project_id else None
-    if project_id and scope_project is None:
-        scope_project = None
+        scope_project = projects.first()
+    else:
+        scope_project = all_projects.first() if len(project_ids) == 1 else None
     scoped_ids = [scope_project.id] if scope_project else project_ids
 
     today = timezone.now().date()

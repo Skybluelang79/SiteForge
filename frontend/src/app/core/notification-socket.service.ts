@@ -25,19 +25,19 @@ export class NotificationSocketService implements OnDestroy {
     const cfg = (globalThis as any).__sf || {};
     let wsUrl: string;
     if (cfg.wsBase) {
-      wsUrl = `${String(cfg.wsBase).replace(/\/$/, '')}/ws/notifications/?token=${encodeURIComponent(token)}`;
+      wsUrl = `${String(cfg.wsBase).replace(/\/$/, '')}/ws/notifications/`;
     } else {
       const apiRoot = String(cfg.apiRoot || '/api/v1');
       if (/^https?:/i.test(apiRoot)) {
         const u = new URL(apiRoot, window.location.origin);
         const wsProtocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
-        wsUrl = `${wsProtocol}//${u.host}/ws/notifications/?token=${encodeURIComponent(token)}`;
+        wsUrl = `${wsProtocol}//${u.host}/ws/notifications/`;
       } else {
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        wsUrl = `${protocol}://${window.location.host}/ws/notifications/?token=${encodeURIComponent(token)}`;
+        wsUrl = `${protocol}://${window.location.host}/ws/notifications/`;
       }
     }
-    this.socket = new WebSocket(wsUrl);
+    this.socket = new WebSocket(wsUrl, [`bearer.${token}`]);
     this.socket.onopen = () => {
       this.reconnectAttempts = 0;
     };

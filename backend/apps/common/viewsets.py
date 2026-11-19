@@ -5,7 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
 
-from .drf_permissions import HasPermission, IsOrganizationMember
+from .drf_permissions import DenyAll, HasPermission, IsOrganizationMember
 
 
 class MappedPermissionMixin:
@@ -28,7 +28,9 @@ class MappedPermissionMixin:
             keys = self.action_permissions.get("write", ())
         if keys:
             return [HasPermission(*keys)()]
-        return [IsOrganizationMember()]
+        if self.request.method in permissions.SAFE_METHODS:
+            return [IsOrganizationMember()]
+        return [DenyAll()]
 
 
 class OrgScopedQuerySetMixin:
@@ -138,6 +140,10 @@ class ProjectScopedViewSet(ProjectScopedQuerySetMixin, SiteForgeViewSet):
 
     def perform_create(self, serializer):
         project = serializer.validated_data.get("project")
-        if project is not None and not self.request.user.can_access_project(project):
-            raise PermissionDenied("You do not have access to this project.")
+        if project is not None:
+            membership = getattr(self.request, "membership", None)
+            if membership is None or project.organization_id != membership.organization_id:
+                raise PermissionDenied("Project belongs to another organization.")
+            if not self.request.user.can_access_project(project):
+                raise PermissionDenied("You do not have access to this project.")
         serializer.save()

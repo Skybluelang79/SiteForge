@@ -33,6 +33,7 @@ class DailyLogViewSet(ProjectScopedViewSet):
         "destroy": ("field.edit",),
         "approve": ("field.approve",),
         "reject": ("field.approve",),
+        "write": ("field.create",),
     }
 
     def get_queryset(self):

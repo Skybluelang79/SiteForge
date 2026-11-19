@@ -10,6 +10,7 @@ import httpx
 from django.utils import timezone
 
 from .models import ApiApplication, WebhookDelivery, WebhookEvent, WebhookSubscription
+from .validation import validate_webhook_url
 
 MAX_ATTEMPTS = 5
 REQUEST_TIMEOUT = 10.0
@@ -112,6 +113,7 @@ def deliver(delivery_id):
     delivery.attempt_count += 1
     started = timezone.now()
     try:
+        validate_webhook_url(delivery.subscription.target_url)
         response = httpx.post(
             delivery.subscription.target_url,
             content=body,

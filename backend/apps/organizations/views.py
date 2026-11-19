@@ -34,7 +34,11 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return (
-            Organization.objects.filter(memberships__user=user, memberships__is_active=True)
+            Organization.objects.filter(
+                memberships__user=user,
+                memberships__is_active=True,
+                deleted_at__isnull=True,
+            )
             .annotate(active_member_count=Count("memberships", filter=Q(memberships__is_active=True)))
             .distinct()
         )
@@ -76,7 +80,10 @@ class RoleViewSet(TenantViewSet):
     filterset_fields = ["is_system"]
 
     def get_queryset(self):
-        return Role.objects.all()
+        return super().get_queryset().select_related("organization")
+
+    def perform_create(self, serializer):
+        serializer.save(organization=self.request.membership.organization)
 
     def perform_destroy(self, instance):
         if instance.is_system:

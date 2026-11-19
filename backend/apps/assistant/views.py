@@ -1,7 +1,6 @@
-"""AI assistant API: chat, context briefing and conversation history."""
+﻿"""AI assistant API: chat, context briefing and conversation history."""
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
@@ -17,7 +16,23 @@ from .services import generate_reply, provider_configured
 
 class AssistantChatThrottle(UserRateThrottle):
     scope = "assistant"
-    rate = "40/min"
+
+
+def _actions(context):
+    actions = [
+        {"label": "Open dashboard", "href": "/dashboard", "kind": "navigate"},
+        {"label": "Review projects", "href": "/projects", "kind": "navigate"},
+    ]
+    project = context.get("project")
+    if project and project.get("id"):
+        pid = project["id"]
+        actions.insert(0, {"label": f"Open {project['name']}", "href": f"/projects/{pid}", "kind": "navigate"})
+    kpis = context.get("kpis") or {}
+    if kpis.get("overdue_rfis"):
+        actions.append({"label": "Review RFIs", "href": "/rfis", "kind": "navigate"})
+    if kpis.get("open_tasks"):
+        actions.append({"label": "Review tasks", "href": "/tasks", "kind": "navigate"})
+    return actions[:4]
 
 
 class AssistantChatView(APIView):
@@ -38,7 +53,10 @@ class AssistantChatView(APIView):
                 id=project_id, organization_id=membership.organization_id
             ).first()
             if project is None or not request.user.can_access_project(project):
-                raise PermissionDenied("You do not have access to this project.")
+                return Response(
+                    {"error": {"code": "project_not_found", "message": "Project not found."}},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
         conversation = None
         if conversation_id:
@@ -62,9 +80,19 @@ class AssistantChatView(APIView):
         history = list(
             conversation.messages.order_by("created_at").values("role", "content")
         )
-        scoped_project_id = conversation.project_id
-        context = build_context(request, scoped_project_id)
-        reply, provider, model, latency = generate_reply(message, context, history)
+        context = build_context(request, conversation.project_id)
+        context_project = (context.get("project") or {}).get("id")
+        scoped_project_id = conversation.project_id or context_project
+        if not conversation.project_id and context_project:
+            project_obj = Project.objects.filter(
+                id=context_project, organization_id=membership.organization_id
+            ).first()
+            if project_obj and request.user.can_access_project(project_obj):
+                conversation.project = project_obj
+                conversation.save(update_fields=["project", "updated_at"])
+                scoped_project_id = project_obj.id
+
+        reply, provider, model, latency, usage, degraded = generate_reply(message, context, history)
 
         AssistantMessage.objects.create(
             conversation=conversation,
@@ -88,11 +116,15 @@ class AssistantChatView(APIView):
                 "provider": provider,
                 "model": model,
                 "latency_ms": latency,
+                "degraded": degraded,
+                "usage": usage,
+                "actions": _actions(context),
                 "suggestions": suggested_prompts(context),
                 "context": {
                     "scope": context["scope"],
                     "organization": context["organization"],
                     "project": context["project"]["name"] if context["project"] else None,
+                    "selected_project_id": str(scoped_project_id) if scoped_project_id else None,
                 },
             },
             status=status.HTTP_200_OK,

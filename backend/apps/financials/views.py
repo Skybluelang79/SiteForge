@@ -117,6 +117,7 @@ class CommitmentViewSet(ProjectScopedViewSet):
         "destroy": ("financials.edit",),
         "approve": ("financials.approve",),
         "issue": ("financials.edit",),
+        "write": ("financials.create",),
     }
 
     def get_queryset(self):
@@ -127,7 +128,10 @@ class CommitmentViewSet(ProjectScopedViewSet):
 
     @action(detail=True, methods=["post"], url_path="approve")
     def approve(self, request, pk=None):
-        commitment = approve_commitment(commitment_id=pk, user=request.user, request=request)
+        commitment = self.get_object()
+        commitment = approve_commitment(
+            commitment_id=commitment.id, user=request.user, request=request
+        )
         return Response(CommitmentSerializer(commitment).data)
 
     @action(detail=True, methods=["post"], url_path="issue")
@@ -186,6 +190,7 @@ class PurchaseOrderViewSet(ProjectScopedViewSet):
         "destroy": ("financials.edit",),
         "approve": ("financials.approve",),
         "receive": ("financials.edit",),
+        "write": ("financials.create",),
     }
 
     def get_queryset(self):
@@ -196,7 +201,8 @@ class PurchaseOrderViewSet(ProjectScopedViewSet):
 
     @action(detail=True, methods=["post"], url_path="approve")
     def approve(self, request, pk=None):
-        po = approve_purchase_order(purchase_order_id=pk, user=request.user, request=request)
+        po = self.get_object()
+        po = approve_purchase_order(purchase_order_id=po.id, user=request.user, request=request)
         return Response(PurchaseOrderSerializer(po).data)
 
     @action(detail=True, methods=["post"], url_path="receive")
@@ -255,6 +261,7 @@ class InvoiceViewSet(ProjectScopedViewSet):
         "destroy": ("financials.edit",),
         "approve": ("financials.approve",),
         "pay": ("financials.edit",),
+        "write": ("financials.create",),
     }
 
     def get_queryset(self):
@@ -274,7 +281,8 @@ class InvoiceViewSet(ProjectScopedViewSet):
 
     @action(detail=True, methods=["post"], url_path="approve")
     def approve(self, request, pk=None):
-        invoice = approve_invoice(invoice_id=pk, user=request.user, request=request)
+        invoice = self.get_object()
+        invoice = approve_invoice(invoice_id=invoice.id, user=request.user, request=request)
         invoice.recalculate()
         invoice.save(update_fields=["total_amount", "net_payable", "updated_at"])
         return Response(InvoiceSerializer(invoice).data)
@@ -366,7 +374,8 @@ class ChangeOrderViewSet(ProjectScopedViewSet):
 
     @action(detail=True, methods=["post"], url_path="approve")
     def approve(self, request, pk=None):
-        co = approve_change_order(change_order_id=pk, user=request.user, request=request)
+        co = self.get_object()
+        co = approve_change_order(change_order_id=co.id, user=request.user, request=request)
         return Response(ChangeOrderSerializer(co).data)
 
     @action(detail=True, methods=["post"], url_path="reject")

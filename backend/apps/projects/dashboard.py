@@ -293,6 +293,72 @@ def _risk_signals(project_health):
     return signals
 
 
+def _risk_insights(signals, project_health):
+    insights = []
+    for signal in signals:
+        category = signal.get("category", "").lower()
+        insights.append({**signal, "category": category})
+    for item in project_health:
+        if item["tasks"]["overdue"] and not any(
+            i.get("project_id") == item["id"] and i.get("category") == "schedule" for i in insights
+        ):
+            insights.append(
+                {
+                    "project_id": item["id"],
+                    "project": item["name"],
+                    "title": f"{item['tasks']['overdue']} overdue task"
+                    f"{'s' if item['tasks']['overdue'] != 1 else ''}",
+                    "detail": "Schedule impact from overdue work.",
+                    "category": "schedule",
+                    "severity": "high" if item["tasks"]["overdue"] >= 3 else "medium",
+                }
+            )
+    return insights
+
+
+def _legacy_site_plan(project):
+    if not project:
+        return None
+    return {
+        "project_id": project["id"],
+        "name": project["name"],
+        "zones": [
+            {
+                "id": "main-structure",
+                "name": "Main structure",
+                "status": project.get("risk_level", "healthy"),
+                "meta": {
+                    "tasks": project.get("tasks", {}).get("open", 0),
+                    "overdue": project.get("overdue_items", 0),
+                    "progress": project.get("percent_complete", 0),
+                },
+            }
+        ],
+    }
+
+
+def _promotions(project_health):
+    items = []
+    for project in project_health[:3]:
+        if project.get("overdue_items"):
+            items.append(
+                {
+                    "project_id": project["id"],
+                    "title": f"Review {project['name']} risks",
+                    "detail": f"{project['overdue_items']} overdue item(s) need attention.",
+                }
+            )
+    if not items and project_health:
+        items.append(
+            {
+                "project_id": project_health[0]["id"],
+                "title": "Portfolio on track",
+                "detail": "No urgent promotions detected.",
+            }
+        )
+    return items
+
+
 def _health_summary(project_health, signals):
     if not project_health:
         return {
@@ -302,6 +368,7 @@ def _health_summary(project_health, signals):
             "projects_at_risk": 0,
             "signals": [],
             "risks": [],
+            "projects": [],
             "counts": {"healthy": 0, "watch": 0, "at_risk": 0, "critical": 0},
         }
 
@@ -374,6 +441,7 @@ def _health_summary(project_health, signals):
             }
             for signal in risks
         ],
+        "projects": project_health,
         "counts": counts,
     }
 
@@ -390,6 +458,7 @@ class DashboardView(APIView):
         soon = today + timedelta(days=30)
 
         project_ids = list(projects_for_user(request.user, org_id).values_list("id", flat=True))
+        requested_project = request.query_params.get("project")
         accessible_projects = list(
             Project.objects.filter(id__in=project_ids).select_related("project_manager")
         )
@@ -403,13 +472,20 @@ class DashboardView(APIView):
             key=lambda item: (item["risk_score"], -item["overdue_items"], item["name"].lower()),
         )
         signals = _risk_signals(site_plan)
-        health = _health_summary(site_plan, signals)
+        scoped_site_plan = site_plan
+        if requested_project and requested_project in health_by_id:
+            scoped_site_plan = [health_by_id[requested_project]]
+            signals = _risk_signals(scoped_site_plan)
+        health = _health_summary(scoped_site_plan, signals)
         project_rows = sorted(
             accessible_projects,
             key=lambda project: project.created_at or timezone.now(),
             reverse=True,
         )[:12]
         project_health = [health_by_id[str(project.id)] for project in project_rows]
+        risk_insights = _risk_insights(signals, scoped_site_plan)
+        legacy_site_plan = _legacy_site_plan(scoped_site_plan[0] if requested_project and scoped_site_plan else None)
+        promotions = _promotions(scoped_site_plan)
 
         tasks = Task.objects.filter(project_id__in=project_ids)
         rfis = RFI.objects.filter(project_id__in=project_ids)
@@ -467,7 +543,9 @@ class DashboardView(APIView):
                     "pending_change_orders": change_orders["pending"] or 0,
                 },
                 "health": health,
-                "site_plan": project_health,
+                "site_plan": legacy_site_plan if legacy_site_plan is not None else project_health,
+                "risk_insights": risk_insights,
+                "promotions": promotions,
                 "milestones_due_soon": MilestoneSerializerLite(
                     Milestone.objects.filter(
                         project_id__in=project_ids,

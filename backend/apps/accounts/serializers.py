@@ -1,9 +1,11 @@
 """Accounts serializers: users, auth, MFA, sessions, password reset."""
+from datetime import datetime, timezone as dt_timezone
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import PasswordResetToken, UserSession
 
@@ -67,10 +69,13 @@ class LoginSerializer(TokenObtainPairSerializer):
             return {"mfa_required": True, "mfa_token": issue_mfa_token(user)}
         self.user.touch_activity()
         if request := self.context.get("request"):
+            refresh = RefreshToken(data["refresh"])
             UserSession.objects.create(
                 user=user,
+                refresh_jti=str(refresh.get("jti", "")),
                 user_agent=request.META.get("HTTP_USER_AGENT", "")[:400],
                 ip_address=request.META.get("REMOTE_ADDR"),
+                expires_at=datetime.fromtimestamp(refresh["exp"], tz=dt_timezone.utc),
             )
         data["user"] = UserSerializer(user).data
         return data

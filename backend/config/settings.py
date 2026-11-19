@@ -6,12 +6,13 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
-    DJANGO_DEBUG=(bool, True),
-    DJANGO_ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1", "backend"]),
+    DJANGO_DEBUG=(bool, False),
+    DJANGO_ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1", "backend", "testserver"]),
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:4200", "http://127.0.0.1:4200"]),
     DJANGO_CSRF_TRUSTED_ORIGINS=(list, ["http://localhost:4200", "http://127.0.0.1:4200"]),
     CELERY_TASK_ALWAYS_EAGER=(bool, False),
@@ -33,8 +34,15 @@ elif env("DATABASE_URL", default=""):
 else:
     DB_ENGINE = "sqlite3"
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-dev-key-change-me")
+SECRET_KEY = env("DJANGO_SECRET_KEY", default="")
 DEBUG = env("DJANGO_DEBUG")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "insecure-dev-key-change-me"
+    else:
+        from django.core.exceptions import ImproperlyConfigured
+
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is False.")
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 
 INSTALLED_APPS = [
@@ -49,6 +57,7 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "django_filters",
     "corsheaders",
@@ -91,10 +100,10 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
     "apps.common.idempotency.IdempotencyMiddleware",
+    "oauth2_provider.middleware.OAuth2TokenMiddleware",
     "apps.organizations.middleware.ActiveOrganizationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "oauth2_provider.middleware.OAuth2TokenMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -140,6 +149,7 @@ else:
     }
 
 CONN_MAX_AGE = env.int("DB_CONN_MAX_AGE", default=60)
+DATABASES["default"]["CONN_MAX_AGE"] = CONN_MAX_AGE
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -235,6 +245,15 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+AI_ENABLED = env.bool("AI_ENABLED", default=True)
+AI_API_KEY = env("AI_API_KEY", default="")
+AI_BASE_URL = env("AI_BASE_URL", default="https://api.openai.com/v1")
+AI_MODEL = env("AI_MODEL", default="gpt-4.1-mini")
+AI_TIMEOUT_SECONDS = env.int("AI_TIMEOUT_SECONDS", default=30)
+AI_MAX_TOKENS = env.int("AI_MAX_TOKENS", default=900)
+AI_TEMPERATURE = env.float("AI_TEMPERATURE", default=0.2)
+WEBHOOK_ALLOW_PRIVATE_TARGETS = env.bool("WEBHOOK_ALLOW_PRIVATE_TARGETS", default=False)
+
 # ---------------------------------------------------------------------------
 # Authentication
 # ---------------------------------------------------------------------------
@@ -247,6 +266,7 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
@@ -335,10 +355,15 @@ SPECTACULAR_SETTINGS = {
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "X-Organization-Id",
+    "Idempotency-Key",
+]
 CSRF_TRUSTED_ORIGINS = env("DJANGO_CSRF_TRUSTED_ORIGINS")
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-USE_X_FORWARDED_HOST = True
+if env.bool("DJANGO_TRUST_PROXY_HEADERS", default=False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

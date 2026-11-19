@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
 import { ApiService } from '../../core/api.service';
-import { AuthService } from '../../core/auth.service';
+import { API_ROOT, AuthService } from '../../core/auth.service';
 import { ColumnConfig, FormFieldConfig, ResourcePageConfig } from './resource-config';
 
 @Component({
@@ -333,7 +333,7 @@ export class ResourceListComponent {
     if (!row) return;
     const token = this.auth.accessToken();
     const org = this.auth.activeOrganizationId();
-    const url = `/api/v1/documents/${row['id']}/download/`;
+    const url = `${API_ROOT}/documents/${row['id']}/download/`;
     fetch(url, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

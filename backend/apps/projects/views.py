@@ -201,9 +201,8 @@ class MilestoneViewSet(BaseModelViewSet):
         membership = getattr(self.request, "membership", None)
         if membership is None:
             return Milestone.objects.none()
-        return Milestone.objects.filter(project__organization_id=membership.organization_id).select_related(
-            "owner", "project"
-        )
+        allowed = projects_for_user(self.request.user, membership.organization_id)
+        return Milestone.objects.filter(project__in=allowed).select_related("owner", "project")
 
     def check_project_access(self, project):
         if project.organization_id != self.request.membership.organization_id:
@@ -232,11 +231,15 @@ class ContractViewSet(BaseModelViewSet):
         membership = getattr(self.request, "membership", None)
         if membership is None:
             return Contract.objects.none()
-        return Contract.objects.filter(project__organization_id=membership.organization_id).select_related(
-            "created_by", "project"
-        )
+        allowed = projects_for_user(self.request.user, membership.organization_id)
+        return Contract.objects.filter(project__in=allowed).select_related("created_by", "project")
 
     def perform_create(self, serializer):
+        project = serializer.validated_data["project"]
+        if project.organization_id != self.request.membership.organization_id:
+            raise PermissionDenied("Project belongs to another organization.")
+        if not self.request.user.can_access_project(project):
+            raise PermissionDenied("You do not have access to this project.")
         serializer.save(created_by=self.request.user)
 
 

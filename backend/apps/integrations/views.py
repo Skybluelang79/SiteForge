@@ -182,18 +182,14 @@ class HealthView(APIView):
 
     def get(self, request):
         database_ok = True
-        error = ""
         try:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT 1")
                 cursor.fetchone()
-        except Exception as exc:
+        except Exception:
             database_ok = False
-            error = str(exc)
         payload = {
             "status": "ok" if database_ok else "degraded",
             "database": "ok" if database_ok else "error",
         }
-        if error:
-            payload["error"] = error
         return Response(payload, status=200 if database_ok else 503)

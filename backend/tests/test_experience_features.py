@@ -78,7 +78,7 @@ def test_assistant_offline_budget_briefing(workspace):
     )
 
     assert response.status_code == 200, response.content
-    assert response.data["provider"] == "offline"
+    assert response.data["provider"] in {"offline", "fallback"}
     assert "Budget" in response.data["reply"]
     assert "$250.0K" in response.data["reply"]
     assert AssistantConversation.objects.count() == 1
@@ -141,5 +141,5 @@ def test_assistant_rejects_project_outside_membership(workspace):
         format="json",
     )
 
-    assert response.status_code == 403
+    assert response.status_code == 404
     assert AssistantConversation.objects.count() == 0

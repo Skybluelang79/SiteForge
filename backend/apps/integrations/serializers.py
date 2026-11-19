@@ -4,6 +4,7 @@ from rest_framework import serializers
 from apps.accounts.serializers import UserSummarySerializer
 
 from .models import ApiApplication, WebhookDelivery, WebhookEvent, WebhookSubscription
+from .validation import validate_webhook_url
 
 
 class ApiApplicationSerializer(serializers.ModelSerializer):
@@ -50,6 +51,9 @@ class WebhookSubscriptionSerializer(serializers.ModelSerializer):
 
     def get_has_secret(self, obj):
         return bool(obj.secret)
+
+    def validate_target_url(self, value):
+        return validate_webhook_url(value)
 
     def validate_event_types(self, value):
         if not isinstance(value, list):

@@ -14,8 +14,10 @@
 3. Set secrets/env (replace values):
    ```sh
    fly secrets set DJANGO_SECRET_KEY="<long-random>" \
-     DJANGO_DEBUG=False \
-     DJANGO_ALLOWED_HOSTS="<app>.fly.dev" \
+      DJANGO_DEBUG=False \
+      DJANGO_TRUST_PROXY_HEADERS=True \
+      DJANGO_ALLOWED_HOSTS="<app>.fly.dev" \
+
      CORS_ALLOWED_ORIGINS="https://<your-vercel-app>.vercel.app" \
      DJANGO_CSRF_TRUSTED_ORIGINS="https://<your-vercel-app>.vercel.app" \
      FRONTEND_URL="https://<your-vercel-app>.vercel.app" \
@@ -25,7 +27,8 @@
 5. (Optional) Seed demo data once: `fly ssh console -C "python manage.py seed_dev_data --reset"` and/or create an admin: `fly ssh console -C "python manage.py createsuperuser"`
 6. Verify: `https://<app>.fly.dev/api/v1/health/ready/` and `/admin/`
 
-Notes: entrypoint runs `migrate` and `collectstatic` on start. Celery worker/beat are not included in the web process; run separate Fly Machines/processes if you need async jobs. Media uploads use local storage by default (ephemeral on Fly) — configure S3 (`STORAGE_BACKEND=s3`, `AWS_*`) for persistence.
+Notes: entrypoint runs `migrate` and `collectstatic` on start. `fly.toml` defines the `app`, `worker` and `beat` processes; deploy all three (`fly deploy`) and keep at least one app machine running for WebSockets. Set `WEBHOOK_ALLOW_PRIVATE_TARGETS=True` only if you intentionally deliver to private endpoints. Media uploads use local storage by default (ephemeral on Fly) — configure S3 (`STORAGE_BACKEND=s3`, `AWS_*`) for persistence.
+
 
 ## Frontend on Vercel
 

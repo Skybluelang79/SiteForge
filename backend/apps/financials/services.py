@@ -5,10 +5,19 @@ concurrent approvals cannot double-post amounts.
 """
 from django.db import transaction
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 
 from apps.audit.services import record_audit_event
 
 from .models import Budget, BudgetLine, ChangeOrder, Commitment, Invoice, PurchaseOrder
+
+
+def _assert_approval_scope(obj, user, request):
+    membership = getattr(request, "membership", None)
+    if membership is None or obj.project.organization_id != membership.organization_id:
+        raise PermissionDenied("This record belongs to another organization.")
+    if not user.can_access_project(obj.project):
+        raise PermissionDenied("You do not have access to this project.")
 
 
 @transaction.atomic
@@ -18,6 +27,7 @@ def approve_change_order(*, change_order_id, user, request=None):
         .select_related("project", "cost_code", "commitment")
         .get(pk=change_order_id)
     )
+    _assert_approval_scope(change_order, user, request)
     if change_order.status == "approved":
         return change_order
 
@@ -66,6 +76,7 @@ def approve_change_order(*, change_order_id, user, request=None):
 @transaction.atomic
 def approve_commitment(*, commitment_id, user, request=None):
     commitment = Commitment.objects.select_for_update().select_related("project").get(pk=commitment_id)
+    _assert_approval_scope(commitment, user, request)
     if commitment.status == "approved":
         return commitment
     commitment.status = "approved"
@@ -89,6 +100,7 @@ def approve_purchase_order(*, purchase_order_id, user, request=None):
     purchase_order = (
         PurchaseOrder.objects.select_for_update().select_related("project").get(pk=purchase_order_id)
     )
+    _assert_approval_scope(purchase_order, user, request)
     purchase_order.status = "approved"
     purchase_order.approved_by = user
     purchase_order.save(update_fields=["status", "approved_by", "updated_at"])
@@ -107,6 +119,7 @@ def approve_purchase_order(*, purchase_order_id, user, request=None):
 @transaction.atomic
 def approve_invoice(*, invoice_id, user, request=None):
     invoice = Invoice.objects.select_for_update().select_related("project", "commitment").get(pk=invoice_id)
+    _assert_approval_scope(invoice, user, request)
     if invoice.status == "approved":
         return invoice
     invoice.status = "approved"

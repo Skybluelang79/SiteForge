@@ -7,10 +7,13 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import signing
 from django.core.mail import send_mail
+from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import PasswordResetToken
+from .models import PasswordResetToken, UserSession
 
 User = get_user_model()
 
@@ -50,6 +53,20 @@ def create_password_reset(user) -> str:
     return raw
 
 
+def revoke_all_sessions(user) -> None:
+    sessions = list(UserSession.objects.filter(user=user, revoked_at__isnull=True))
+    if not sessions:
+        return
+    jtis = [session.refresh_jti for session in sessions if session.refresh_jti]
+    UserSession.objects.filter(user=user, revoked_at__isnull=True).update(revoked_at=timezone.now())
+    if jtis:
+        for token in OutstandingToken.objects.filter(jti__in=jtis):
+            try:
+                RefreshToken(token.token).blacklist()
+            except Exception:
+                pass
+
+
 def send_password_reset_email(user, raw_token: str) -> None:
     link = f"{settings.FRONTEND_URL}/reset-password?token={raw_token}"
     send_mail(
@@ -61,10 +78,12 @@ def send_password_reset_email(user, raw_token: str) -> None:
     )
 
 
+@transaction.atomic
 def consume_password_reset(raw_token: str, new_password: str):
     token_hash = _hash_token(raw_token)
     record = (
-        PasswordResetToken.objects.select_related("user")
+        PasswordResetToken.objects.select_for_update()
+        .select_related("user")
         .filter(token_hash=token_hash, used_at__isnull=True)
         .order_by("-created_at")
         .first()
@@ -75,4 +94,5 @@ def consume_password_reset(raw_token: str, new_password: str):
     record.user.save(update_fields=["password"])
     record.used_at = timezone.now()
     record.save(update_fields=["used_at"])
+    revoke_all_sessions(record.user)
     return record.user

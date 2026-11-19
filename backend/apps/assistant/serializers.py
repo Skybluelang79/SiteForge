@@ -21,6 +21,18 @@ class AssistantConversationSerializer(serializers.ModelSerializer):
 
 
 class AssistantChatSerializer(serializers.Serializer):
-    message = serializers.CharField(max_length=4000, trim_whitespace=True)
+    message = serializers.CharField(max_length=4000, trim_whitespace=True, required=False)
+    messages = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
     conversation_id = serializers.UUIDField(required=False, allow_null=True)
     project_id = serializers.UUIDField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        messages = attrs.pop("messages", None)
+        if not attrs.get("message") and messages:
+            for item in reversed(messages):
+                if item.get("role") == "user" and item.get("content"):
+                    attrs["message"] = item["content"]
+                    break
+        if not attrs.get("message"):
+            raise serializers.ValidationError({"message": "This field is required."})
+        return attrs

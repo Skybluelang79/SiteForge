@@ -20,7 +20,9 @@ SYSTEM_PROMPT = (
 
 
 def provider_configured() -> bool:
-    return bool(getattr(settings, "AI_API_KEY", ""))
+    return bool(
+        getattr(settings, "AI_ENABLED", True) and getattr(settings, "AI_API_KEY", "")
+    )
 
 
 def _compact_money(value, currency="USD"):
@@ -34,31 +36,32 @@ def _compact_money(value, currency="USD"):
 
 def _call_provider(messages):
     base_url = getattr(settings, "AI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-    model = getattr(settings, "AI_MODEL", "gpt-4o-mini")
-    timeout = getattr(settings, "AI_TIMEOUT_SECONDS", 25)
+    model = getattr(settings, "AI_MODEL", "gpt-4.1-mini")
+    timeout = getattr(settings, "AI_TIMEOUT_SECONDS", 30)
     payload = {
         "model": model,
         "messages": messages,
-        "temperature": 0.2,
-        "max_tokens": 700,
+        "temperature": getattr(settings, "AI_TEMPERATURE", 0.2),
+        "max_tokens": getattr(settings, "AI_MAX_TOKENS", 900),
     }
     try:
-        with httpx.Client(timeout=timeout) as client:
-            response = client.post(
-                f"{base_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.AI_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-            )
-            response.raise_for_status()
-            data = response.json()
+        response = httpx.post(
+            f"{base_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.AI_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        data = response.json()
         content = data["choices"][0]["message"]["content"].strip()
-        return content or None, model
+        usage = data.get("usage") or {}
+        return content or None, data.get("model") or model, usage
     except Exception as exc:  # pragma: no cover - network dependent
         logger.warning("AI provider call failed: %s", exc)
-        return None, model
+        return None, model, {}
 
 
 def _bullets(items):
@@ -232,7 +235,7 @@ def offline_reply(question: str, context: dict) -> str:
 
 
 def generate_reply(question, context, history):
-    """Return (content, provider, model, latency_ms)."""
+    """Return (content, provider, model, latency_ms, usage, degraded)."""
     started = time.monotonic()
 
     if provider_configured():
@@ -244,11 +247,11 @@ def generate_reply(question, context, history):
             messages.append({"role": item["role"], "content": item["content"]})
         messages.append({"role": "user", "content": question})
 
-        content, model = _call_provider(messages)
+        content, model, usage = _call_provider(messages)
         latency = int((time.monotonic() - started) * 1000)
         if content:
-            return content, "remote", model, latency
+            return content, "openai-compatible", model, latency, usage, False
 
     content = offline_reply(question, context)
     latency = int((time.monotonic() - started) * 1000)
-    return content, "offline", getattr(settings, "AI_MODEL", "siteforge-analyst"), latency
+    return content, "fallback", getattr(settings, "AI_MODEL", "siteforge-analyst"), latency, {}, False

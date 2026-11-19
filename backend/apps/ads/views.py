@@ -38,7 +38,11 @@ class AdDeliveryView(APIView):
         else:
             queryset = queryset.filter(organization__isnull=True)
 
-        limit = min(int(request.query_params.get("limit", 3) or 3), 10)
+        try:
+            limit = int(request.query_params.get("limit", 3) or 3)
+        except (TypeError, ValueError):
+            limit = 3
+        limit = max(1, min(limit, 10))
         serializer = AdvertisementSerializer(
             queryset[:limit], many=True, context={"request": request}
         )

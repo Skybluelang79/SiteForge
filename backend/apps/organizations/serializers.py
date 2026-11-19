@@ -39,8 +39,11 @@ class OrganizationSerializer(serializers.ModelSerializer):
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
-        fields = ["id", "name", "code", "description", "permissions", "is_system", "created_at"]
-        read_only_fields = ["id", "is_system", "created_at"]
+        fields = [
+            "id", "organization", "name", "code", "description", "permissions",
+            "is_system", "created_at",
+        ]
+        read_only_fields = ["id", "organization", "is_system", "created_at"]
 
     def validate_permissions(self, value):
         if not isinstance(value, list):

@@ -1,6 +1,7 @@
 """Authentication, MFA and profile endpoints."""
 import base64
 import io
+from datetime import datetime, timezone as dt_timezone
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -12,7 +13,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.common.drf_permissions import IsOrganizationMember
@@ -30,14 +32,31 @@ from .serializers import (
     UserSerializer,
     UserSessionSerializer,
 )
-from .services import consume_password_reset, create_password_reset, resolve_mfa_token, send_password_reset_email
+from .services import (
+    consume_password_reset,
+    create_password_reset,
+    resolve_mfa_token,
+    revoke_all_sessions,
+    send_password_reset_email,
+)
 
 User = get_user_model()
 
 
-def _tokens_for_user(user):
+def _tokens_for_user(user, request=None):
     refresh = RefreshToken.for_user(user)
-    return {"access": str(refresh.access_token), "refresh": str(refresh), "user": UserSerializer(user).data}
+    UserSession.objects.create(
+        user=user,
+        refresh_jti=str(refresh.get("jti", "")),
+        user_agent=(request.META.get("HTTP_USER_AGENT", "")[:400] if request else ""),
+        ip_address=(request.META.get("REMOTE_ADDR") if request else None),
+        expires_at=datetime.fromtimestamp(refresh["exp"], tz=dt_timezone.utc),
+    )
+    return {
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": UserSerializer(user).data,
+    }
 
 
 class RegisterView(generics.CreateAPIView):
@@ -52,7 +71,7 @@ class RegisterView(generics.CreateAPIView):
             user = serializer.save()
             user.email_verified_at = timezone.now()
             user.save(update_fields=["email_verified_at"])
-        return Response(_tokens_for_user(user), status=status.HTTP_201_CREATED)
+        return Response(_tokens_for_user(user, request), status=status.HTTP_201_CREATED)
 
 
 class LoginView(APIView):
@@ -71,15 +90,14 @@ class RefreshView(TokenRefreshView):
 
 class LogoutView(APIView):
     def post(self, request):
-        refresh = request.data.get("refresh")
-        if refresh:
-            try:
-                RefreshToken(refresh).blacklist()
-            except Exception:
-                pass
-        UserSession.objects.filter(user=request.user, revoked_at__isnull=True).update(
-            revoked_at=timezone.now()
-        )
+        for field, token_class in (("refresh", RefreshToken), ("access", AccessToken)):
+            raw = request.data.get(field)
+            if raw:
+                try:
+                    token_class(raw).blacklist()
+                except Exception:
+                    pass
+        revoke_all_sessions(request.user)
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
@@ -138,7 +156,7 @@ class MFAVerifyView(APIView):
         if not TOTPDevice.objects.filter(user=user, confirmed=True).exists():
             _enable_mfa(user)
         user.touch_activity()
-        return Response(_tokens_for_user(user))
+        return Response(_tokens_for_user(user, request))
 
 
 class MFAConfirmView(APIView):
@@ -183,6 +201,7 @@ class PasswordChangeView(APIView):
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save(update_fields=["password"])
+        revoke_all_sessions(request.user)
         return Response({"detail": "Password updated."})
 
 
@@ -222,11 +241,18 @@ class SessionListView(generics.ListAPIView):
 
 class SessionRevokeView(APIView):
     def post(self, request, pk):
-        updated = UserSession.objects.filter(pk=pk, user=request.user).update(
-            revoked_at=timezone.now()
-        )
-        if not updated:
+        session = UserSession.objects.filter(pk=pk, user=request.user).first()
+        if session is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        session.revoked_at = timezone.now()
+        session.save(update_fields=["revoked_at"])
+        if session.refresh_jti:
+            outstanding = OutstandingToken.objects.filter(jti=session.refresh_jti).first()
+            if outstanding is not None:
+                try:
+                    RefreshToken(outstanding.token).blacklist()
+                except Exception:
+                    pass
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

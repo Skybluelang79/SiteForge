@@ -52,6 +52,13 @@ class IsOrganizationMember(permissions.BasePermission):
         return getattr(request, "membership", None) is not None
 
 
+class DenyAll(permissions.BasePermission):
+    """Fail closed for actions without an explicit permission mapping."""
+
+    def has_permission(self, request, view):
+        return False
+
+
 class IsOrganizationAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         membership = getattr(request, "membership", None)
