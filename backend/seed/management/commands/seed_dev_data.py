@@ -81,12 +81,20 @@ class Command(BaseCommand):
         today = timezone.now().date()
         users = {}
         for email, first_name, last_name, role_code in DEMO_USERS:
-            user = User.objects.create_user(
-                email=email,
-                password=DEMO_PASSWORD,
-                first_name=first_name,
-                last_name=last_name,
-            )
+            if role_code == "owner":
+                user = User.objects.create_superuser(
+                    email=email,
+                    password=DEMO_PASSWORD,
+                    first_name=first_name,
+                    last_name=last_name,
+                )
+            else:
+                user = User.objects.create_user(
+                    email=email,
+                    password=DEMO_PASSWORD,
+                    first_name=first_name,
+                    last_name=last_name,
+                )
             users[role_code] = user
         owner = users["owner"]
 

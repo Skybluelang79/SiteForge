@@ -357,13 +357,26 @@ SPECTACULAR_SETTINGS = {
 # ---------------------------------------------------------------------------
 # CORS / CSRF
 # ---------------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+CORS_ALLOWED_ORIGINS = list(env("CORS_ALLOWED_ORIGINS"))
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "X-Organization-Id",
     "Idempotency-Key",
 ]
-CSRF_TRUSTED_ORIGINS = env("DJANGO_CSRF_TRUSTED_ORIGINS")
+CSRF_TRUSTED_ORIGINS = list(env("DJANGO_CSRF_TRUSTED_ORIGINS"))
+for _host in (
+    env("RENDER_EXTERNAL_HOSTNAME", default=""),
+    env("KOYEB_PUBLIC_DOMAIN", default=""),
+    env("RAILWAY_PUBLIC_DOMAIN", default=""),
+    env("WEBSITE_HOSTNAME", default=""),
+):
+    if _host:
+        _origin = f"https://{_host}"
+        if _origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_origin)
+_SITE_URL = env("SITE_URL", default="")
+if _SITE_URL.startswith("https://") and _SITE_URL not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(_SITE_URL.rstrip("/"))
 
 if env.bool("DJANGO_TRUST_PROXY_HEADERS", default=False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
