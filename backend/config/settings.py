@@ -44,9 +44,10 @@ if not SECRET_KEY:
 
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is False.")
 ALLOWED_HOSTS = list(env("DJANGO_ALLOWED_HOSTS"))
-_render_host = env("RENDER_EXTERNAL_HOSTNAME", default="")
-if _render_host and _render_host not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(_render_host)
+for _host_var in ("RENDER_EXTERNAL_HOSTNAME", "KOYEB_PUBLIC_DOMAIN", "RAILWAY_PUBLIC_DOMAIN", "WEBSITE_HOSTNAME"):
+    _host = env(_host_var, default="")
+    if _host and _host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_host)
 
 INSTALLED_APPS = [
     "daphne",
