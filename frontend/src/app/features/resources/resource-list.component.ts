@@ -4,7 +4,12 @@ import { ActivatedRoute } from '@angular/router';
 
 import { ApiService } from '../../core/api.service';
 import { API_ROOT, AuthService } from '../../core/auth.service';
-import { ColumnConfig, FormFieldConfig, ResourcePageConfig } from './resource-config';
+import {
+  ColumnConfig,
+  FormFieldConfig,
+  ResourceActionConfig,
+  ResourcePageConfig,
+} from './resource-config';
 
 @Component({
   selector: 'sf-resource-list',
@@ -39,6 +44,8 @@ export class ResourceListComponent {
   readonly uploadError = signal('');
   readonly changeNote = signal('');
   readonly selectedFile = signal<File | null>(null);
+  readonly actionBusy = signal(false);
+  readonly actionError = signal('');
 
   constructor() {
     this.route.data.subscribe((data) => {
@@ -52,6 +59,7 @@ export class ResourceListComponent {
       this.search.set('');
       this.searchTerm.set('');
       this.selected.set(null);
+      this.actionError.set('');
       this.resetForm(config);
     });
 
@@ -168,8 +176,89 @@ export class ResourceListComponent {
     });
   }
 
+  runAction(action: ResourceActionConfig, row: Record<string, unknown>): void {
+    if (action.confirm && !window.confirm(`${action.label} this record?`)) {
+      return;
+    }
+    const path = action.path.replace('{id}', String(row['id'] ?? ''));
+    this.actionBusy.set(true);
+    this.actionError.set('');
+    if (action.method === 'GET') {
+      this.downloadAction(path, action.label, row);
+      return;
+    }
+    const request =
+      action.method === 'POST'
+        ? this.api.post<unknown>(path, {})
+        : action.method === 'PATCH'
+          ? this.api.patch<unknown>(path, {})
+          : this.api.delete<unknown>(path);
+    request.subscribe({
+      next: (result) => {
+        this.actionBusy.set(false);
+        if (result && typeof result === 'object' && 'id' in result) {
+          this.updateRow(result as Record<string, unknown>);
+        }
+        this.load();
+        this.showToast(`${action.label} completed.`);
+      },
+      error: (error) => {
+        this.actionBusy.set(false);
+        this.actionError.set(this.api.errorMessage(error));
+      },
+    });
+  }
+
+  private downloadAction(path: string, label: string, row: Record<string, unknown>): void {
+    const token = this.auth.accessToken();
+    const org = this.auth.activeOrganizationId();
+    fetch(`${API_ROOT}/${path}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(org ? { 'X-Organization-Id': org } : {}),
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Download failed. Please try again.');
+        }
+        return response.blob().then((blob) => {
+          const match = /filename="?([^";]+)"?/.exec(response.headers.get('content-disposition') ?? '');
+          const objectUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = objectUrl;
+          link.download = match?.[1] ?? `${String(row['id'] ?? 'download')}.csv`;
+          link.click();
+          URL.revokeObjectURL(objectUrl);
+        });
+      })
+      .then(() => {
+        this.actionBusy.set(false);
+        this.load();
+        this.showToast(`${label} started.`);
+      })
+      .catch((error: unknown) => {
+        this.actionBusy.set(false);
+        this.actionError.set(error instanceof Error ? error.message : 'Download failed.');
+      });
+  }
+
+  private updateRow(updated: Record<string, unknown>): void {
+    const id = updated['id'];
+    this.items.update((rows) => rows.map((row) => (row['id'] === id ? updated : row)));
+    if (this.selected()?.['id'] === id) {
+      this.selected.set(updated);
+    }
+  }
+
+  private showToast(message: string): void {
+    this.toast.set(message);
+    setTimeout(() => this.toast.set(''), 3000);
+  }
+
   select(row: Record<string, unknown>): void {
     this.selected.set(row);
+    this.actionError.set('');
     if (this.isDocument()) {
       this.loadVersions(row['id'] as string);
     } else {
@@ -180,6 +269,7 @@ export class ResourceListComponent {
   closeDetail(): void {
     this.selected.set(null);
     this.versions.set([]);
+    this.actionError.set('');
     this.uploadOpen.set(false);
     this.uploadError.set('');
     this.changeNote.set('');

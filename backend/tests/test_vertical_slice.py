@@ -200,3 +200,13 @@ def test_health_and_readiness(api_client):
     resp = api_client.get("/api/v1/health/ready/")
     assert resp.status_code == 200
     assert resp.data["checks"]["database"] == "ok"
+
+
+def test_readiness_tolerates_unavailable_redis(api_client, settings):
+    settings.CHANNEL_LAYERS = {"default": {"BACKEND": "channels_redis.core.RedisChannelLayer"}}
+    settings.REDIS_URL = "redis://127.0.0.1:6399/0"
+
+    resp = api_client.get("/api/v1/health/ready/")
+
+    assert resp.status_code == 200
+    assert resp.data["checks"]["redis"] == "degraded"

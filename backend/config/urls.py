@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/v1/", include("apps.projects.urls")),
     path("api/v1/", include("apps.documents.urls")),
     path("api/v1/", include("apps.drawings.urls")),
+    path("api/v1/", include("apps.design.urls")),
     path("api/v1/", include("apps.field.urls")),
     path("api/v1/", include("apps.tasks.urls")),
     path("api/v1/", include("apps.rfis.urls")),

@@ -33,7 +33,7 @@ interface Ad {
             <iframe
               class="external"
               [srcdoc]="safe(ad.html_snippet)"
-              sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+              sandbox="allow-scripts"
               title="Sponsored content"
               loading="lazy"
             ></iframe>

@@ -16,7 +16,7 @@ docs/      Conventions and operations notes
 
 ## Quick start (local, no Docker)
 
-Prerequisites: Python 3.12+ (project venv uses 3.14), Node 22+ / 24.
+Prerequisites: Python 3.14, Node 22+ / 24.
 
 ### Backend
 
@@ -100,10 +100,12 @@ backend entrypoint. Set `SEED_DEMO_DATA=1` to reseed on container start, or use 
 
 ```powershell
 Set-Location backend
+..\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 ..\.venv\Scripts\python.exe -m pytest -q --no-header
 ```
 
-The suite covers the original vertical slice plus cross-module workflows (financial approvals,
+`pytest.ini` supplies test-only `DJANGO_TEST` and `DJANGO_SECRET_KEY` values, so no manual
+environment setup is needed. The suite covers the original vertical slice plus cross-module workflows (financial approvals,
 quality sign-off and punch lists, RFI responses and overdue sweeps, report export jobs, metric
 snapshots, and integration credentials/webhooks).
 
@@ -114,6 +116,7 @@ Useful checks:
 ..\.venv\Scripts\python.exe makemigrations --check --dry-run
 Set-Location ..\frontend
 npm run build
+npm test -- --watch=false
 ```
 
 ## What is implemented

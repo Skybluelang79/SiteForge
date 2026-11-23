@@ -422,6 +422,25 @@ dd {
   gap: 10px;
 }
 
+.resource-actions {
+  margin-bottom: 18px;
+}
+
+.resource-actions h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .versions {
   display: flex;
   flex-direction: column;

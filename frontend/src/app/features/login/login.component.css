@@ -124,13 +124,23 @@ h1 {
 }
 
 .scene-frame {
-  height: clamp(340px, 42vh, 460px);
-  min-height: 340px;
+  height: clamp(280px, 34vh, 380px);
+  min-height: 280px;
   transform: perspective(1400px) rotateX(1deg);
   transform-origin: center bottom;
 }
 
 .scene-frame sf-site-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.blueprint-frame {
+  height: 168px;
+}
+
+.blueprint-frame sf-auth-canvas {
   display: block;
   width: 100%;
   height: 100%;
@@ -427,5 +437,125 @@ button.secondary {
 
   .frame {
     transform: none;
+  }
+}
+
+.actions-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 12px;
+}
+
+.link-btn {
+  width: auto;
+  border: 0;
+  background: none;
+  color: #b45309;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.link-btn:hover {
+  color: #92400e;
+  text-decoration: underline;
+}
+
+button.cloudflare {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #dbe4ef;
+  background: #fff;
+  color: #0f172a;
+  padding: 11px 16px;
+  font-size: 13px;
+}
+
+button.cloudflare:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.cloudflare-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: #f6821f;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 14px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8edf4;
+}
+
+.signup-prompt {
+  margin: 14px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.signup-prompt a {
+  color: #b45309;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.signup-prompt a:hover {
+  text-decoration: underline;
+}
+
+.turnstile-slot {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #eef2f7;
+}
+
+.turnstile-slot.is-hidden {
+  display: none;
+}
+
+.verification-note {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 11.5px;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  color: #be123c;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .blueprint-frame {
+    height: 140px;
   }
 }

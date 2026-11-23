@@ -1,4 +1,4 @@
-<header class="page-header">
+﻿<header class="page-header">
   <div>
     <p class="eyebrow">Workspace</p>
     <h1>Organization</h1>
@@ -9,6 +9,7 @@
 <nav class="tabs">
   <button [class.active]="tab() === 'members'" (click)="tab.set('members')">Members</button>
   <button [class.active]="tab() === 'invitations'" (click)="tab.set('invitations')">Invitations</button>
+  <button [class.active]="tab() === 'features'" (click)="tab.set('features')">Feature flags</button>
 </nav>
 
 @if (error()) { <div class="alert">{{ error() }}</div> }
@@ -29,7 +30,7 @@
       </tbody>
     </table>
   </div>
-} @else {
+} @else if (tab() === 'invitations') {
   <div class="grid">
     <section class="card">
       <h2>Invite member</h2>
@@ -70,4 +71,52 @@
       @if (!invitations().length) { <div class="empty">No invitations</div> }
     </section>
   </div>
+} @else {
+  <section class="card features-card">
+    <div class="features-header">
+      <div>
+        <h2>Feature flags</h2>
+        <p class="sub">Toggle organization features and save changes.</p>
+      </div>
+      <button class="btn primary" type="button" (click)="saveFeatures()" [disabled]="featuresSaving() || featuresLoading()">
+        {{ featuresSaving() ? 'Saving…' : 'Save changes' }}
+      </button>
+    </div>
+
+    @if (featuresError()) { <div class="alert">{{ featuresError() }}</div> }
+    @if (featuresSaved()) { <div class="success">Feature flags saved.</div> }
+    @if (featuresLoading()) {
+      <div class="empty">Loading feature flags…</div>
+    } @else {
+      @if (features().length) {
+        <ul class="feature-list">
+          @for (feature of features(); track feature.key) {
+            <li class="feature-row">
+              <label class="toggle">
+                <input type="checkbox" [checked]="feature.value" (change)="toggleFeature(feature.key)" />
+                <span class="key">{{ feature.key }}</span>
+              </label>
+              <span class="state" [class.on]="feature.value">{{ feature.value ? 'Enabled' : 'Disabled' }}</span>
+              <button class="link danger" type="button" (click)="removeFeature(feature.key)">Remove</button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <div class="empty">No feature flags configured.</div>
+      }
+
+      <form class="add-feature" (submit)="addFeature(); $event.preventDefault()">
+        <label>
+          <span>Add flag</span>
+          <input
+            type="text"
+            placeholder="feature_key"
+            [value]="newFeatureKey()"
+            (input)="newFeatureKey.set($any($event.target).value)"
+          />
+        </label>
+        <button class="btn secondary" type="submit">Add</button>
+      </form>
+    }
+  </section>
 }

@@ -4,6 +4,7 @@ import { forkJoin } from 'rxjs';
 
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
+import { AiPanelComponent } from '../../shared/ai-panel.component';
 
 interface Project {
   id: string;
@@ -60,7 +61,7 @@ interface Activity {
 
 @Component({
   selector: 'sf-project-detail',
-  imports: [RouterLink],
+  imports: [RouterLink, AiPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.css',

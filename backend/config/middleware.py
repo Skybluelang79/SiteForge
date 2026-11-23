@@ -1,6 +1,4 @@
 """ASGI middleware: authenticate WebSocket connections with JWT."""
-from urllib.parse import parse_qs
-
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from django.conf import settings
@@ -25,7 +23,7 @@ def get_user_from_token(token: str):
 
 
 class JwtAuthMiddleware:
-    """Resolve the user from a bearer subprotocol, Authorization header or legacy token query."""
+    """Resolve the user from a bearer subprotocol or Authorization header."""
 
     def __init__(self, inner):
         self.inner = inner
@@ -43,9 +41,5 @@ class JwtAuthMiddleware:
             auth_header = headers.get(b"authorization", b"").decode()
             if auth_header.lower().startswith("bearer "):
                 token = auth_header[7:]
-        if not token:
-            query = parse_qs(scope.get("query_string", b"").decode())
-            if "token" in query and query["token"]:
-                token = query["token"][0]
         scope["user"] = await get_user_from_token(token) if token else AnonymousUser()
         return await self.inner(scope, receive, send)

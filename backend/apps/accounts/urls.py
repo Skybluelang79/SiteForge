@@ -6,6 +6,7 @@ from . import views
 urlpatterns = [
     path("register/", views.RegisterView.as_view(), name="auth-register"),
     path("login/", views.LoginView.as_view(), name="auth-login"),
+    path("cloudflare-access/", views.CloudflareAccessView.as_view(), name="auth-cloudflare-access"),
     path("refresh/", views.RefreshView.as_view(), name="auth-refresh"),
     path("verify/", TokenVerifyView.as_view(), name="auth-verify"),
     path("logout/", views.LogoutView.as_view(), name="auth-logout"),

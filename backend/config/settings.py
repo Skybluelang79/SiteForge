@@ -17,8 +17,11 @@ env = environ.Env(
     DJANGO_CSRF_TRUSTED_ORIGINS=(list, ["http://localhost:4200", "http://127.0.0.1:4200"]),
     CELERY_TASK_ALWAYS_EAGER=(bool, False),
     CELERY_TASK_EAGER_PROPAGATES=(bool, True),
+    READINESS_REQUIRE_REDIS=(bool, False),
     EMAIL_BACKEND=(str, "django.core.mail.backends.console.EmailBackend"),
     STORAGE_BACKEND=(str, "local"),
+    TURNSTILE_ENABLED=(bool, False),
+    CLOUDFLARE_ACCESS_ENABLED=(bool, False),
 )
 
 # Read .env if present (never commit the real file).
@@ -78,6 +81,7 @@ INSTALLED_APPS = [
     "apps.projects",
     "apps.documents",
     "apps.drawings",
+    "apps.design",
     "apps.field",
     "apps.tasks",
     "apps.rfis",
@@ -95,6 +99,7 @@ INSTALLED_APPS = [a for a in INSTALLED_APPS if a]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.common.middleware.SecurityHeadersMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -249,13 +254,6 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-AI_ENABLED = env.bool("AI_ENABLED", default=True)
-AI_API_KEY = env("AI_API_KEY", default="")
-AI_BASE_URL = env("AI_BASE_URL", default="https://api.openai.com/v1")
-AI_MODEL = env("AI_MODEL", default="gpt-4.1-mini")
-AI_TIMEOUT_SECONDS = env.int("AI_TIMEOUT_SECONDS", default=30)
-AI_MAX_TOKENS = env.int("AI_MAX_TOKENS", default=900)
-AI_TEMPERATURE = env.float("AI_TEMPERATURE", default=0.2)
 WEBHOOK_ALLOW_PRIVATE_TARGETS = env.bool("WEBHOOK_ALLOW_PRIVATE_TARGETS", default=False)
 
 # ---------------------------------------------------------------------------
@@ -289,6 +287,15 @@ OAUTH2_PROVIDER = {
 # django-otp
 OTP_TOTP_SYNC_ISSUER = True
 SITE_NAME = "SiteForge"
+
+TURNSTILE_ENABLED = env("TURNSTILE_ENABLED")
+TURNSTILE_SITE_KEY = env("TURNSTILE_SITE_KEY", default="")
+TURNSTILE_SECRET_KEY = env("TURNSTILE_SECRET_KEY", default="")
+TURNSTILE_HOSTNAME = env("TURNSTILE_HOSTNAME", default="")
+
+CLOUDFLARE_ACCESS_ENABLED = env("CLOUDFLARE_ACCESS_ENABLED")
+CLOUDFLARE_ACCESS_TEAM_DOMAIN = env("CLOUDFLARE_ACCESS_TEAM_DOMAIN", default="")
+CLOUDFLARE_ACCESS_AUD = env("CLOUDFLARE_ACCESS_AUD", default="")
 
 # ---------------------------------------------------------------------------
 # Django REST Framework
@@ -347,7 +354,6 @@ SPECTACULAR_SETTINGS = {
         {"name": "reports", "description": "Reports, analytics, exports"},
         {"name": "integrations", "description": "API credentials, webhooks, OAuth apps"},
         {"name": "notifications", "description": "User notifications"},
-        {"name": "admin", "description": "Administrative console"},
         {"name": "dashboard", "description": "Dashboards"},
         {"name": "ads", "description": "Advertising placements and delivery"},
         {"name": "assistant", "description": "AI project assistant"},
@@ -377,6 +383,22 @@ for _host in (
 _SITE_URL = env("SITE_URL", default="")
 if _SITE_URL.startswith("https://") and _SITE_URL not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(_SITE_URL.rstrip("/"))
+
+SECURITY_CSP = env(
+    "SECURITY_CSP",
+    default=(
+        "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; "
+        "frame-ancestors 'none'; script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; "
+        "font-src 'self' data:; connect-src 'self' ws: wss:; frame-src 'self' https:"
+    ),
+)
+SECURITY_CSP_REPORT_ONLY = env.bool("SECURITY_CSP_REPORT_ONLY", default=False)
+SECURITY_REFERRER_POLICY = env("SECURITY_REFERRER_POLICY", default="strict-origin-when-cross-origin")
+SECURITY_PERMISSIONS_POLICY = env(
+    "SECURITY_PERMISSIONS_POLICY",
+    default="camera=(), microphone=(), geolocation=(), payment=()",
+)
 
 if env.bool("DJANGO_TRUST_PROXY_HEADERS", default=False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -446,9 +468,12 @@ DEFAULT_ORG_ROLE = "member"
 # ---------------------------------------------------------------------------
 # AI assistant (OpenAI-compatible provider with a deterministic fallback)
 # ---------------------------------------------------------------------------
+AI_ENABLED = env.bool("AI_ENABLED", default=True)
 AI_PROVIDER = env("AI_PROVIDER", default="openai")
 AI_API_KEY = env("AI_API_KEY", default="")
 AI_BASE_URL = env("AI_BASE_URL", default="https://api.openai.com/v1")
 AI_MODEL = env("AI_MODEL", default="gpt-4o-mini")
 AI_TIMEOUT_SECONDS = env.int("AI_TIMEOUT_SECONDS", default=25)
+AI_MAX_TOKENS = env.int("AI_MAX_TOKENS", default=900)
+AI_TEMPERATURE = env.float("AI_TEMPERATURE", default=0.2)
 ASSISTANT_MAX_HISTORY = env.int("ASSISTANT_MAX_HISTORY", default=10)

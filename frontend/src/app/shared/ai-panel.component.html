@@ -1,0 +1,126 @@
+<section class="intel-panel" aria-label="Project Intelligence">
+  <header class="intel-head">
+    <div class="intel-id">
+      <span class="intel-mark"><sf-icon name="sparkles" [size]="17" /></span>
+      <div class="intel-copy">
+        <h2>Project Intelligence</h2>
+        <p>{{ scopeLabel() }}</p>
+      </div>
+    </div>
+    <div class="intel-actions">
+      <span class="provider" [class.live]="providerConfigured()">
+        <i></i>{{ providerLabel() }}
+      </span>
+      <button
+        class="fresh"
+        type="button"
+        [disabled]="!messages().length || loading()"
+        (click)="reset()"
+        aria-label="Start a new conversation"
+      >
+        <sf-icon name="rotate" [size]="14" /> New chat
+      </button>
+    </div>
+  </header>
+
+  <div class="quick-grid" aria-label="Quick actions">
+    @for (action of quickActions; track action.label) {
+      <button class="quick" type="button" [disabled]="loading()" (click)="send(action.prompt)">
+        <span class="quick-icon"><sf-icon [name]="action.icon" [size]="16" /></span>
+        <span class="quick-copy">
+          <strong>{{ action.label }}</strong>
+          <small>{{ action.hint }}</small>
+        </span>
+        <sf-icon name="arrow-right" [size]="14" />
+      </button>
+    }
+  </div>
+
+  <div class="intel-body">
+    <div #scroller class="thread">
+      @if (!messages().length && !loading()) {
+        <div class="welcome">
+          <span class="welcome-mark"><sf-icon name="sparkles" [size]="16" /></span>
+          <div>
+            <strong>Ask with live project context</strong>
+            <p>
+              Answers use the latest permitted budget, schedule, RFI, quality and safety data in
+              this workspace.
+            </p>
+          </div>
+        </div>
+      }
+
+      @for (message of messages(); track $index) {
+        <article class="msg" [class.user]="message.role === 'user'">
+          <span class="avatar" [class.me]="message.role === 'user'">
+            {{ message.role === 'user' ? initials() : 'AI' }}
+          </span>
+          <div class="bubble">
+            <p>{{ message.content }}</p>
+            <span class="stamp">
+              {{ message.time }}{{ message.provider ? ' · ' + message.provider : '' }}
+            </span>
+          </div>
+        </article>
+      }
+
+      @if (loading()) {
+        <article class="msg">
+          <span class="avatar">AI</span>
+          <div class="bubble typing" aria-label="Analyzing project data">
+            <i></i><i></i><i></i>
+          </div>
+        </article>
+      }
+
+      @if (error()) {
+        <div class="error" role="alert">
+          <sf-icon name="alert-triangle" [size]="15" />
+          <span>{{ error() }}</span>
+          <button type="button" (click)="retry()">Retry</button>
+        </div>
+      }
+    </div>
+
+    @if (suggestions().length && !loading()) {
+      <div class="followups" aria-label="Suggested follow-ups">
+        @for (suggestion of suggestions(); track suggestion) {
+          <button type="button" (click)="send(suggestion)">{{ suggestion }}</button>
+        }
+      </div>
+    }
+
+    <div class="composer">
+      <textarea
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+        (keydown)="onKeydown($event)"
+        rows="2"
+        placeholder="Ask about budget, schedule, RFIs, quality or safety…"
+        aria-label="Ask Project Intelligence"
+      ></textarea>
+      <button
+        class="send"
+        type="button"
+        [disabled]="!draft().trim() || loading()"
+        (click)="send()"
+        aria-label="Send message"
+      >
+        <sf-icon name="send" [size]="16" />
+      </button>
+    </div>
+
+    <footer class="intel-foot">
+      <span>Enter to send · Shift + Enter for a new line</span>
+      @if (conversationId()) {
+        <span class="continuity">
+          <sf-icon name="check-square" [size]="12" />
+          {{ restored() ? 'Conversation resumed' : 'Context retained' }}
+        </span>
+      } @else {
+        <span>{{ messages().length }} messages</span>
+      }
+    </footer>
+  </div>
+</section>

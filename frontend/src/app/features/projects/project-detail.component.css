@@ -347,6 +347,10 @@ dd {
   padding: 18px 0;
 }
 
+.ai-section {
+  margin-top: 18px;
+}
+
 .loading {
   padding: 60px;
   text-align: center;

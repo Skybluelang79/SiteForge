@@ -16,6 +16,13 @@ export interface FormFieldConfig {
   options?: Array<{ value: string; label: string }>;
 }
 
+export interface ResourceActionConfig {
+  label: string;
+  path: string;
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  confirm?: boolean;
+}
+
 export interface ResourcePageConfig {
   title: string;
   eyebrow: string;
@@ -24,6 +31,7 @@ export interface ResourcePageConfig {
   icon: string;
   columns: ColumnConfig[];
   createFields?: FormFieldConfig[];
+  actions?: ResourceActionConfig[];
   canCreate?: boolean;
   searchPlaceholder?: string;
   emptyText?: string;
@@ -158,6 +166,7 @@ export const RESOURCE_PAGES: Record<string, ResourcePageConfig> = {
       },
       { key: 'due_date', label: 'Response due', type: 'date' },
     ],
+    actions: [{ label: 'Close RFI', path: 'rfis/{id}/close/', method: 'POST', confirm: true }],
   },
   financials: {
     title: 'Financials',
@@ -181,6 +190,11 @@ export const RESOURCE_PAGES: Record<string, ResourcePageConfig> = {
       { key: 'amount', label: 'Amount', type: 'number', required: true },
       { key: 'reason', label: 'Reason', type: 'text', placeholder: 'Owner directive' },
       { key: 'submitted_date', label: 'Submitted date', type: 'date' },
+    ],
+    actions: [
+      { label: 'Submit', path: 'change-orders/{id}/submit/', method: 'POST' },
+      { label: 'Approve', path: 'change-orders/{id}/approve/', method: 'POST', confirm: true },
+      { label: 'Reject', path: 'change-orders/{id}/reject/', method: 'POST', confirm: true },
     ],
   },
   quality: {
@@ -211,6 +225,95 @@ export const RESOURCE_PAGES: Record<string, ResourcePageConfig> = {
       { key: 'location', label: 'Location', type: 'text' },
     ],
   },
+  defects: {
+    title: 'Defects',
+    eyebrow: 'Quality',
+    description: 'Defects raised during inspections with severity and resolution status.',
+    endpoint: 'defects/',
+    icon: '!',
+    searchPlaceholder: 'Search defects…',
+    columns: [
+      { key: 'title', label: 'Defect' },
+      { key: 'severity', label: 'Severity', type: 'status' },
+      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'due_date', label: 'Due', type: 'date' },
+    ],
+    canCreate: false,
+    actions: [{ label: 'Resolve', path: 'defects/{id}/resolve/', method: 'POST', confirm: true }],
+  },
+  'punch-list-items': {
+    title: 'Punch list items',
+    eyebrow: 'Quality',
+    description: 'Open punch list items by trade, location and target date.',
+    endpoint: 'punch-list-items/',
+    icon: '☐',
+    searchPlaceholder: 'Search punch list items…',
+    columns: [
+      { key: 'description', label: 'Item' },
+      { key: 'trade', label: 'Trade' },
+      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'due_date', label: 'Due', type: 'date' },
+    ],
+    canCreate: false,
+    actions: [{ label: 'Close item', path: 'punch-list-items/{id}/close/', method: 'POST', confirm: true }],
+  },
+  'safety-incidents': {
+    title: 'Safety incidents',
+    eyebrow: 'Quality',
+    description: 'Reported safety incidents and their closeout status.',
+    endpoint: 'safety-incidents/',
+    icon: '⚠',
+    searchPlaceholder: 'Search safety incidents…',
+    columns: [
+      { key: 'number', label: 'Number' },
+      { key: 'title', label: 'Incident' },
+      { key: 'severity', label: 'Severity', type: 'status' },
+      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'occurred_at', label: 'Occurred', type: 'date' },
+    ],
+    canCreate: false,
+    actions: [{ label: 'Close incident', path: 'safety-incidents/{id}/close/', method: 'POST', confirm: true }],
+  },
+  commitments: {
+    title: 'Commitments',
+    eyebrow: 'Commercial',
+    description: 'Subcontracts and purchase commitments awaiting approval or issue.',
+    endpoint: 'commitments/',
+    icon: '⌑',
+    searchPlaceholder: 'Search commitments…',
+    columns: [
+      { key: 'number', label: 'Number' },
+      { key: 'title', label: 'Commitment' },
+      { key: 'vendor_name', label: 'Vendor' },
+      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'revised_amount', label: 'Amount', type: 'money' },
+    ],
+    canCreate: false,
+    actions: [
+      { label: 'Approve', path: 'commitments/{id}/approve/', method: 'POST', confirm: true },
+      { label: 'Issue', path: 'commitments/{id}/issue/', method: 'POST', confirm: true },
+    ],
+  },
+  invoices: {
+    title: 'Invoices',
+    eyebrow: 'Commercial',
+    description: 'Vendor invoices with approval and payment workflow.',
+    endpoint: 'invoices/',
+    icon: '≣',
+    searchPlaceholder: 'Search invoices…',
+    columns: [
+      { key: 'number', label: 'Number' },
+      { key: 'vendor_name', label: 'Vendor' },
+      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'net_payable', label: 'Net payable', type: 'money' },
+      { key: 'due_date', label: 'Due', type: 'date' },
+    ],
+    canCreate: false,
+    actions: [
+      { label: 'Approve', path: 'invoices/{id}/approve/', method: 'POST', confirm: true },
+      { label: 'Pay', path: 'invoices/{id}/pay/', method: 'POST', confirm: true },
+    ],
+  },
   reports: {
     title: 'Reports & analytics',
     eyebrow: 'Insight',
@@ -225,6 +328,22 @@ export const RESOURCE_PAGES: Record<string, ResourcePageConfig> = {
       { key: 'created_at', label: 'Created', type: 'date' },
     ],
     canCreate: false,
+  },
+  'export-jobs': {
+    title: 'Export jobs',
+    eyebrow: 'Insight',
+    description: 'Generated exports and their completion status.',
+    endpoint: 'export-jobs/',
+    icon: '⇩',
+    searchPlaceholder: 'Search export jobs…',
+    columns: [
+      { key: 'export_type', label: 'Export', type: 'status' },
+      { key: 'export_format', label: 'Format', type: 'status' },
+      { key: 'status', label: 'Status', type: 'status' },
+      { key: 'created_at', label: 'Created', type: 'date' },
+    ],
+    canCreate: false,
+    actions: [{ label: 'Download', path: 'export-jobs/{id}/download/', method: 'GET' }],
   },
   integrations: {
     title: 'Integrations',

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 
 export const API_ROOT = (globalThis as any).__sf?.apiRoot || '/api/v1';
+export const CLOUDFLARE_ACCESS_ENABLED = (globalThis as any).__sf?.cloudflareAccessEnabled === true;
 
 export interface User {
   id: string;
@@ -36,7 +37,7 @@ export interface AuthContext {
   permissions: string[];
 }
 
-interface TokenResponse {
+export interface TokenResponse {
   access: string;
   refresh: string;
   user: User;
@@ -78,16 +79,30 @@ export class AuthService {
     () => this.memberships().find((m) => m.organization === this.activeOrganizationId())?.organization_name ?? 'Workspace',
   );
 
-  login(email: string, password: string): Observable<TokenResponse> {
+  login(email: string, password: string, turnstileToken = ''): Observable<TokenResponse> {
     return this.http
-      .post<TokenResponse>(`${API_ROOT}/auth/login/`, { email, password })
-      .pipe(tap((response) => this.persistTokens(response)));
+      .post<TokenResponse>(`${API_ROOT}/auth/login/`, {
+        email,
+        password,
+        turnstile_token: turnstileToken,
+      })
+      .pipe(tap((response) => this.applyAuthResponse(response)));
+  }
+
+  cloudflareAccess(): Observable<TokenResponse> {
+    return this.http
+      .post<TokenResponse>(`${API_ROOT}/auth/cloudflare-access/`, {}, { withCredentials: true })
+      .pipe(tap((response) => this.applyAuthResponse(response)));
+  }
+
+  applyAuthResponse(response: TokenResponse): void {
+    this.persistTokens(response);
   }
 
   verifyMfa(mfaToken: string, code: string): Observable<TokenResponse> {
     return this.http
       .post<TokenResponse>(`${API_ROOT}/auth/mfa/verify/`, { mfa_token: mfaToken, code })
-      .pipe(tap((response) => this.persistTokens(response)));
+      .pipe(tap((response) => this.applyAuthResponse(response)));
   }
 
   loadContext(): Observable<AuthContext> {

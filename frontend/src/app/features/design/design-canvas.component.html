@@ -1,4 +1,4 @@
-<header class="page-header">
+﻿<header class="page-header">
   <div>
     <p class="eyebrow">Design studio</p>
     <h1>Canvas</h1>
@@ -6,13 +6,46 @@
   </div>
   <div class="header-actions">
     <a routerLink="/projects" class="btn ghost">Back to projects</a>
+    <button class="btn ghost" type="button" (click)="loadAuthMockup()">Auth-flow mockup</button>
     <button class="btn ghost" type="button" (click)="exportPNG()"><sf-icon name="download"></sf-icon> Export PNG</button>
     <button class="btn primary" type="button" (click)="clearAll()"><sf-icon name="trash"></sf-icon> Clear</button>
   </div>
 </header>
 
+<section class="persist-bar">
+  <div class="persist-fields">
+    <label>
+      <span>Saved canvas</span>
+      <select [value]="selectedBoardId() ?? ''" (change)="onBoardSelectionChange($any($event.target).value)" [disabled]="!auth.activeProjectId() || loadingBoards()">
+        <option value="">New canvas</option>
+        @for (board of boards(); track board.id) {
+          <option [value]="board.id">{{ board.name }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      <span>Name</span>
+      <input type="text" [value]="boardName()" (input)="onBoardNameInput($any($event.target).value)" [disabled]="!auth.activeProjectId()" placeholder="Canvas name" />
+    </label>
+  </div>
+  <div class="persist-actions">
+    <button class="btn ghost" type="button" (click)="loadBoards()" [disabled]="!auth.activeProjectId() || loadingBoards()">
+      {{ loadingBoards() ? 'Loading...' : 'Reload' }}
+    </button>
+    <button class="btn ghost" type="button" (click)="loadSelected()" [disabled]="!selectedBoardId() || loadingBoards()">Load</button>
+    <button class="btn ghost" type="button" (click)="saveAsNew()" [disabled]="!auth.activeProjectId() || saving()">Save as new</button>
+    <button class="btn primary" type="button" (click)="saveBoard()" [disabled]="!auth.activeProjectId() || saving()">
+      {{ saving() ? 'Saving...' : (selectedBoardId() ? 'Save' : 'Create') }}
+    </button>
+  </div>
+</section>
+
 @if (!auth.activeProjectId()) {
-  <div class="alert">Select an active project in the top bar to associate designs.</div>
+  <div class="alert">Select an active project in the top bar to save and load canvases.</div>
+} @else if (error()) {
+  <div class="alert error">{{ error() }}</div>
+} @else if (status()) {
+  <div class="alert success">{{ status() }}</div>
 }
 
 <div class="studio">

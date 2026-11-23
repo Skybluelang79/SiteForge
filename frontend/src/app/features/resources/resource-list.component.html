@@ -155,6 +155,28 @@
             <button class="btn primary" type="button" (click)="openUpload()">Upload new version</button>
           </div>
         }
+        @if (cfg.actions; as actions) {
+          @if (actions.length) {
+            <section class="resource-actions">
+              <h3>Actions</h3>
+              <div class="action-buttons">
+                @for (action of actions; track action.label) {
+                  <button
+                    class="btn ghost"
+                    type="button"
+                    [disabled]="actionBusy()"
+                    (click)="runAction(action, row)"
+                  >
+                    {{ actionBusy() ? 'Working…' : action.label }}
+                  </button>
+                }
+              </div>
+            </section>
+          }
+        }
+        @if (actionError()) {
+          <div class="alert">{{ actionError() }}</div>
+        }
         <dl>
           @for (entry of detailEntries(); track entry.key) {
             <div>

@@ -46,6 +46,13 @@
             "development": { "buildTarget": "siteforge-web:build:development" }
           },
           "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "buildTarget": "siteforge-web:build:development",
+            "tsConfig": "tsconfig.spec.json"
+          }
         }
       }
     }

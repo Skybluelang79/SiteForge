@@ -1,0 +1,11 @@
+name = "siteforge-auth-edge"
+main = "worker.js"
+compatibility_date = "2026-11-20"
+
+[vars]
+ORIGIN = "https://siteforge-backend.example.com"
+ALLOWED_ORIGIN = "https://siteforge.example.com"
+
+# Set secrets with `wrangler secret put <NAME>`; never commit real values.
+# TURNSTILE_SECRET_KEY = ""
+# CLOUDFLARE_ACCESS_AUD = ""

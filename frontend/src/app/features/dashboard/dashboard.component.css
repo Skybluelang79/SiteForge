@@ -504,6 +504,10 @@ h2 {
   align-content: start;
 }
 
+.ai-section {
+  margin-bottom: 16px;
+}
+
 .projects {
   padding: 20px;
 }

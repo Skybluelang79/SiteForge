@@ -58,7 +58,10 @@ def readiness(request):
 
     checks["redis"] = _redis_check()
     if checks["redis"] == "error":
-        ok = False
+        if getattr(settings, "READINESS_REQUIRE_REDIS", False):
+            ok = False
+        else:
+            checks["redis"] = "degraded"
 
     try:
         cache.set("healthcheck", "1", 5)

@@ -1,0 +1,168 @@
+<div class="signup-page">
+  <section class="visual">
+    <div class="visual-inner">
+      <header class="visual-header">
+        <div class="brand">
+          <span class="mark">SF</span>
+          <span>SiteForge</span>
+        </div>
+        <span class="platform-tag">Construction OS</span>
+      </header>
+
+      <div class="hero-copy">
+        <p class="kicker">Start building smarter</p>
+        <h1>Your next project,<br />fully under control.</h1>
+        <p class="intro">
+          Bring field teams, documents, schedules and commercial data into one connected workspace.
+          Set up once and keep every project moving with confidence.
+        </p>
+      </div>
+
+      <figure class="hero-visual">
+        <div class="frame scene-frame">
+          <sf-site-scene [showTags]="true"></sf-site-scene>
+        </div>
+        <div class="frame blueprint-frame">
+          <sf-auth-canvas></sf-auth-canvas>
+        </div>
+        <figcaption>
+          <span><strong>One source of truth.</strong> Explore the live site model and the underlying project blueprint from day one.</span>
+        </figcaption>
+      </figure>
+
+      <div class="stats" aria-label="Platform highlights">
+        <div><strong>360°</strong><span>Project visibility</span></div>
+        <div><strong>12</strong><span>Operational modules</span></div>
+        <div><strong>1</strong><span>Source of truth</span></div>
+      </div>
+    </div>
+    <div class="grid-lines" aria-hidden="true"></div>
+  </section>
+
+  <section class="form-side">
+    <div class="form-wrap">
+      <div class="form-card">
+        <p class="eyebrow">Create account</p>
+        <h2>Get started with SiteForge</h2>
+        <p class="lede">Your workspace is a few details away. Use your work email to continue.</p>
+
+        <form (submit)="submit({ email: emailInput.value, first_name: firstNameInput.value, last_name: lastNameInput.value, password: passwordInput.value, password_confirm: confirmInput.value }); $event.preventDefault()" novalidate>
+          <div class="field-row">
+            <label>
+              <span>First name</span>
+              <input
+                #firstNameInput
+                type="text"
+                name="first_name"
+                autocomplete="given-name"
+                placeholder="Alex"
+                [attr.aria-invalid]="errorFor('first_name') ? 'true' : null"
+                [attr.aria-describedby]="errorFor('first_name') ? 'first-name-error' : null"
+                (input)="clearError('first_name')"
+              />
+              @if (errorFor('first_name')) {
+                <small class="field-error" id="first-name-error">{{ errorFor('first_name') }}</small>
+              }
+            </label>
+            <label>
+              <span>Last name</span>
+              <input
+                #lastNameInput
+                type="text"
+                name="last_name"
+                autocomplete="family-name"
+                placeholder="Morgan"
+                [attr.aria-invalid]="errorFor('last_name') ? 'true' : null"
+                [attr.aria-describedby]="errorFor('last_name') ? 'last-name-error' : null"
+                (input)="clearError('last_name')"
+              />
+              @if (errorFor('last_name')) {
+                <small class="field-error" id="last-name-error">{{ errorFor('last_name') }}</small>
+              }
+            </label>
+          </div>
+
+          <label>
+            <span>Email address</span>
+            <input
+              #emailInput
+              type="email"
+              name="email"
+              autocomplete="username"
+              placeholder="you@company.com"
+              [attr.aria-invalid]="errorFor('email') ? 'true' : null"
+              [attr.aria-describedby]="errorFor('email') ? 'email-error' : null"
+              (input)="clearError('email')"
+            />
+            @if (errorFor('email')) {
+              <small class="field-error" id="email-error">{{ errorFor('email') }}</small>
+            }
+          </label>
+
+          <label>
+            <span>Password</span>
+            <input
+              #passwordInput
+              type="password"
+              name="password"
+              autocomplete="new-password"
+              placeholder="At least 8 characters"
+              [attr.aria-invalid]="errorFor('password') ? 'true' : null"
+              [attr.aria-describedby]="errorFor('password') ? 'password-error' : 'password-hint'"
+              (input)="clearError('password')"
+            />
+            @if (errorFor('password')) {
+              <small class="field-error" id="password-error">{{ errorFor('password') }}</small>
+            } @else {
+              <small class="field-hint" id="password-hint">Use at least 8 characters with a mix of letters and numbers.</small>
+            }
+          </label>
+
+          <label>
+            <span>Confirm password</span>
+            <input
+              #confirmInput
+              type="password"
+              name="password_confirm"
+              autocomplete="new-password"
+              placeholder="Repeat your password"
+              [attr.aria-invalid]="errorFor('password_confirm') ? 'true' : null"
+              [attr.aria-describedby]="errorFor('password_confirm') ? 'confirm-error' : null"
+              (input)="clearError('password_confirm')"
+            />
+            @if (errorFor('password_confirm')) {
+              <small class="field-error" id="confirm-error">{{ errorFor('password_confirm') }}</small>
+            }
+          </label>
+
+          <div class="turnstile-slot" [class.is-hidden]="loading()">
+            <div #turnstileContainer class="turnstile-widget"></div>
+            @if (turnstile.enabled() && !turnstile.ready() && !turnstile.failed()) {
+              <p class="verification-note">Checking security verification…</p>
+            }
+            @if (turnstile.failed()) {
+              <p class="field-error">Security verification could not load. Please refresh and try again.</p>
+            }
+          </div>
+
+          @if (error()) {
+            <div class="alert" role="alert">{{ error() }}</div>
+          }
+
+          <button class="primary" type="submit" [disabled]="loading() || (turnstile.enabled() && !turnstile.ready())">
+            {{ loading() ? 'Creating account…' : 'Create account' }}
+          </button>
+        </form>
+
+        <div class="divider"><span>or</span></div>
+        <p class="signin-prompt">
+          Already have an account? <a routerLink="/login">Sign in</a>
+        </p>
+      </div>
+
+      @if (turnstile.enabled()) {
+        <p class="trust-note">Protected by Cloudflare Turnstile. We never share your workspace details.</p>
+      }
+    </div>
+  </section>
+</div>

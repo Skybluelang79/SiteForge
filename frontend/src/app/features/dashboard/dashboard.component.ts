@@ -5,6 +5,7 @@ import { ApiService } from '../../core/api.service';
 import { AssistantUiService } from '../../core/assistant-ui.service';
 import { AuthService } from '../../core/auth.service';
 import { AdSlotComponent } from '../../shared/ad-slot.component';
+import { AiPanelComponent } from '../../shared/ai-panel.component';
 import { SitePlanComponent, SitePlanProject } from '../../shared/site-plan.component';
 import { IconComponent } from '../../shared/icon.component';
 
@@ -80,7 +81,7 @@ interface DashboardResponse {
 
 @Component({
   selector: 'sf-dashboard',
-  imports: [RouterLink, SitePlanComponent, AdSlotComponent, IconComponent],
+  imports: [RouterLink, SitePlanComponent, AdSlotComponent, IconComponent, AiPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',

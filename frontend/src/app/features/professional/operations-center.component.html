@@ -1,0 +1,491 @@
+<section class="operations">
+  <header class="page-head">
+    <div class="head-main">
+      <p class="eyebrow">SiteForge · Project controls</p>
+      <h1>Operations Center</h1>
+      <p class="head-copy">
+        Delivery, commercial, quality and field status for
+        {{ activeProject()?.name ?? 'all accessible projects' }}.
+      </p>
+      <div class="head-meta">
+        <span class="meta-chip">{{ projects().length }} projects in scope</span>
+        <span class="meta-chip">Live API data</span>
+        <span class="meta-chip">{{ tasks().length }} work items tracked</span>
+      </div>
+    </div>
+    <div class="head-actions">
+      <a class="head-link" routerLink="/projects">Projects</a>
+      <button class="head-button" type="button" [disabled]="loading()" (click)="load()">Refresh data</button>
+    </div>
+  </header>
+
+  <div class="filter-panel">
+    <label class="filter-field">
+      <span class="filter-label">Active project</span>
+      <select
+        [value]="auth.activeProjectId() ?? ''"
+        (change)="changeProject($any($event.target).value)"
+        aria-label="Filter operations by active project"
+      >
+        <option value="">All accessible projects</option>
+        @for (project of projects(); track project.id) {
+          <option [value]="project.id">{{ project.name }}</option>
+        }
+      </select>
+    </label>
+    <div class="filter-note">
+      <span class="filter-dot"></span>
+      <span>
+        {{ auth.activeProjectId() ? 'Every module filtered to the selected project' : 'Showing all projects you can access' }}
+      </span>
+    </div>
+    @if (activeProject(); as project) {
+      <a class="filter-link" [routerLink]="['/projects', project.id]">Open project record →</a>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-panel">
+      <div class="loading-mark"></div>
+      <div>
+        <p class="loading-title">Loading operations data</p>
+        <p class="loading-copy">Syncing schedule, commercial, quality, documents and field activity…</p>
+        <div class="skeleton-grid">
+          @for (tile of [1, 2, 3, 4, 5, 6, 7, 8]; track tile) {
+            <div class="skeleton-tile"></div>
+          }
+        </div>
+      </div>
+    </div>
+  } @else {
+    @if (hasErrors()) {
+      <div class="banner">
+        <div>
+          <strong>Some sections could not be loaded.</strong>
+          <span> Check your access permissions, then retry the affected modules.</span>
+        </div>
+        <button class="banner-button" type="button" (click)="load()">Retry</button>
+      </div>
+    }
+
+    <div class="kpi-grid">
+      @for (kpi of kpis(); track kpi.label) {
+        <article class="kpi" [class]="'kpi ' + kpi.tone">
+          <p class="kpi-label">{{ kpi.label }}</p>
+          <p class="kpi-value">{{ kpi.value }}</p>
+          <p class="kpi-detail">{{ kpi.detail }}</p>
+        </article>
+      }
+    </div>
+
+    <div class="section-grid">
+      <article class="card span-8">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Schedule</p>
+            <h2>Work packages & progress</h2>
+          </div>
+          <div class="card-tools">
+            <span class="count">{{ tasks().length }} tasks</span>
+            <a class="quick-link" routerLink="/tasks/board">Board</a>
+            <a class="quick-link" routerLink="/tasks">All tasks</a>
+          </div>
+        </div>
+        <div class="card-body">
+          @if (errorFor('tasks')) {
+            <p class="inline-error">{{ errorFor('tasks') }}</p>
+          }
+          <div class="gantt-head">
+            <span>Work item</span>
+            <span>Window</span>
+            <span>Timeline</span>
+          </div>
+          @for (row of scheduleRows(); track row.id) {
+            <div class="gantt-row">
+              <div class="gantt-task">
+                <span class="gantt-title">{{ row.title }}</span>
+                <span class="pill" [class]="'pill ' + pillClass(row.status)">{{ label(row.status) }}</span>
+              </div>
+              <div class="gantt-dates">{{ shortDate(row.start) }} → {{ shortDate(row.due) }}</div>
+              <div class="gantt-track">
+                <span class="gantt-bar" [style.left.%]="row.left" [style.width.%]="row.width">
+                  <span class="gantt-progress" [style.width.%]="row.progress"></span>
+                </span>
+              </div>
+            </div>
+          } @empty {
+            <p class="empty-row">No scheduled work items for this view.</p>
+          }
+          @if (tasks().length > scheduleRows().length) {
+            <p class="card-footnote">Showing the next {{ scheduleRows().length }} of {{ tasks().length }} tasks.</p>
+          }
+        </div>
+      </article>
+
+      <article class="card span-4">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Schedule</p>
+            <h2>Milestones</h2>
+          </div>
+          <span class="count">{{ milestones().length }} total</span>
+        </div>
+        <div class="card-body">
+          @if (errorFor('milestones')) {
+            <p class="inline-error">{{ errorFor('milestones') }}</p>
+          }
+          <ol class="timeline">
+            @for (milestone of milestones(); track milestone.id) {
+              <li class="timeline-item">
+                <span class="timeline-dot" [class]="'timeline-dot ' + pillClass(milestone.status)"></span>
+                <div class="timeline-content">
+                  <div class="timeline-line">
+                    <strong>{{ milestone.name }}</strong>
+                    <span class="pill" [class]="'pill ' + pillClass(milestone.status)">{{ label(milestone.status) }}</span>
+                  </div>
+                  <span class="timeline-date">
+                    {{ milestone.achieved_date ? 'Achieved ' + date(milestone.achieved_date) : 'Due ' + date(milestone.due_date) }}
+                  </span>
+                </div>
+              </li>
+            } @empty {
+              <li class="empty-row">No milestones recorded for this view.</li>
+            }
+          </ol>
+        </div>
+      </article>
+
+      <article class="card span-6">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Commercial control</p>
+            <h2>Commitments</h2>
+          </div>
+          <div class="card-tools">
+            <a class="quick-link" routerLink="/commitments">Register</a>
+            <a class="quick-link" routerLink="/financials/workspace">Workspace</a>
+          </div>
+        </div>
+        <div class="card-body">
+          @if (errorFor('commitments')) {
+            <p class="inline-error">{{ errorFor('commitments') }}</p>
+          }
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Vendor / reference</th>
+                <th>Status</th>
+                <th class="num">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (commitment of commitments(); track commitment.id) {
+                <tr>
+                  <td>
+                    <strong>{{ commitment.vendor_name || commitment.title || 'Unassigned vendor' }}</strong>
+                    <span class="cell-sub">{{ commitment.number || 'No reference' }}</span>
+                  </td>
+                  <td>
+                    <span class="pill" [class]="'pill ' + pillClass(commitment.status)">{{ label(commitment.status) }}</span>
+                  </td>
+                  <td class="num mono">{{ money(commitment.revised_amount, commitment.currency) }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3" class="empty-row">No commitments recorded for this view.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card span-6">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Commercial control</p>
+            <h2>Invoices</h2>
+          </div>
+          <div class="card-tools">
+            <a class="quick-link" routerLink="/invoices">Register</a>
+            <a class="quick-link" routerLink="/financials">Financials</a>
+          </div>
+        </div>
+        <div class="card-body">
+          @if (errorFor('invoices')) {
+            <p class="inline-error">{{ errorFor('invoices') }}</p>
+          }
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Vendor / reference</th>
+                <th>Status</th>
+                <th class="num">Net payable</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (invoice of invoices(); track invoice.id) {
+                <tr>
+                  <td>
+                    <strong>{{ invoice.vendor_name || 'Unassigned vendor' }}</strong>
+                    <span class="cell-sub">{{ invoice.number || 'No reference' }} · Due {{ date(invoice.due_date) }}</span>
+                  </td>
+                  <td>
+                    <span class="pill" [class]="'pill ' + pillClass(invoice.status)">{{ label(invoice.status) }}</span>
+                  </td>
+                  <td class="num mono">{{ money(invoice.net_payable, invoice.currency) }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3" class="empty-row">No invoices recorded for this view.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card span-4">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Quality & safety</p>
+            <h2>Defects</h2>
+          </div>
+          <a class="quick-link" routerLink="/defects">Open register</a>
+        </div>
+        <div class="card-body">
+          @if (errorFor('defects')) {
+            <p class="inline-error">{{ errorFor('defects') }}</p>
+          }
+          <ul class="item-list">
+            @for (defect of defects(); track defect.id) {
+              <li class="item-row">
+                <div class="item-top">
+                  <strong>{{ defect.title }}</strong>
+                  <span class="pill" [class]="'pill ' + pillClass(defect.status)">{{ label(defect.status) }}</span>
+                </div>
+                <div class="item-meta">
+                  <span class="pill small" [class]="'pill small ' + pillClass(defect.severity)">{{ label(defect.severity) }}</span>
+                  <span>{{ defect.location || 'Location not set' }}</span>
+                  <span>Due {{ date(defect.due_date) }}</span>
+                </div>
+              </li>
+            } @empty {
+              <li class="empty-row">No defects recorded for this view.</li>
+            }
+          </ul>
+        </div>
+      </article>
+
+      <article class="card span-4">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Quality & safety</p>
+            <h2>Punch list</h2>
+          </div>
+          <a class="quick-link" routerLink="/punch-list-items">Open register</a>
+        </div>
+        <div class="card-body">
+          @if (errorFor('punchItems')) {
+            <p class="inline-error">{{ errorFor('punchItems') }}</p>
+          }
+          <ul class="item-list">
+            @for (item of punchItems(); track item.id) {
+              <li class="item-row">
+                <div class="item-top">
+                  <strong>{{ item.description }}</strong>
+                  <span class="pill" [class]="'pill ' + pillClass(item.status)">{{ label(item.status) }}</span>
+                </div>
+                <div class="item-meta">
+                  <span>{{ item.trade || 'Unassigned trade' }}</span>
+                  <span>{{ item.location || 'Location not set' }}</span>
+                  <span>Due {{ date(item.due_date) }}</span>
+                </div>
+              </li>
+            } @empty {
+              <li class="empty-row">No punch list items recorded for this view.</li>
+            }
+          </ul>
+        </div>
+      </article>
+
+      <article class="card span-4">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Quality & safety</p>
+            <h2>Safety incidents</h2>
+          </div>
+          <a class="quick-link" routerLink="/safety-incidents">Open register</a>
+        </div>
+        <div class="card-body">
+          @if (errorFor('incidents')) {
+            <p class="inline-error">{{ errorFor('incidents') }}</p>
+          }
+          <ul class="item-list">
+            @for (incident of incidents(); track incident.id) {
+              <li class="item-row">
+                <div class="item-top">
+                  <strong>{{ incident.number ? incident.number + ' · ' : '' }}{{ incident.title }}</strong>
+                  <span class="pill" [class]="'pill ' + pillClass(incident.status)">{{ label(incident.status) }}</span>
+                </div>
+                <div class="item-meta">
+                  <span class="pill small" [class]="'pill small ' + pillClass(incident.severity)">{{ label(incident.severity) }}</span>
+                  <span>{{ date(incident.occurred_at) }}</span>
+                </div>
+              </li>
+            } @empty {
+              <li class="empty-row">No safety incidents recorded for this view.</li>
+            }
+          </ul>
+        </div>
+      </article>
+
+      <article class="card span-6">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Documents & drawings</p>
+            <h2>Controlled documents</h2>
+          </div>
+          <a class="quick-link" routerLink="/documents">Document register</a>
+        </div>
+        <div class="card-body">
+          @if (errorFor('documents')) {
+            <p class="inline-error">{{ errorFor('documents') }}</p>
+          }
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Version</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (document of documents(); track document.id) {
+                <tr>
+                  <td>
+                    <strong>{{ document.title }}</strong>
+                    <span class="cell-sub">{{ document.document_type || 'Unclassified' }}</span>
+                  </td>
+                  <td class="mono">
+                    {{ documentVersion(document) }}
+                  </td>
+                  <td>
+                    <span class="pill" [class]="'pill ' + pillClass(document.status)">{{ label(document.status) }}</span>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3" class="empty-row">No controlled documents for this view.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card span-6">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Documents & drawings</p>
+            <h2>Drawing register</h2>
+          </div>
+          <a class="quick-link" routerLink="/drawings">Drawing register</a>
+        </div>
+        <div class="card-body">
+          @if (errorFor('drawings')) {
+            <p class="inline-error">{{ errorFor('drawings') }}</p>
+          }
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Drawing</th>
+                <th>Revision</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (drawing of drawings(); track drawing.id) {
+                <tr>
+                  <td>
+                    <strong>{{ drawing.number ? drawing.number + ' · ' : '' }}{{ drawing.title }}</strong>
+                    <span class="cell-sub">{{ drawing.discipline || 'Unassigned discipline' }}</span>
+                  </td>
+                  <td class="mono">{{ drawing.current_revision?.revision_code || '—' }}</td>
+                  <td>
+                    <span class="pill" [class]="'pill ' + pillClass(drawing.current_revision?.review_status || drawing.status)">
+                      {{ label(drawing.current_revision?.review_status || drawing.status) }}
+                    </span>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3" class="empty-row">No drawings recorded for this view.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card span-12">
+        <div class="card-head">
+          <div>
+            <p class="card-eyebrow">Field activity</p>
+            <h2>Daily site reports</h2>
+          </div>
+          <a class="quick-link" routerLink="/field">Field operations</a>
+        </div>
+        <div class="card-body">
+          @if (errorFor('logs')) {
+            <p class="inline-error">{{ errorFor('logs') }}</p>
+          }
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Report date</th>
+                <th>Status</th>
+                <th>Weather</th>
+                <th>Work activity</th>
+                <th class="num">Crew</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (log of logs(); track log.id) {
+                <tr>
+                  <td class="mono">{{ date(log.log_date) }}</td>
+                  <td>
+                    <span class="pill" [class]="'pill ' + pillClass(log.status)">{{ label(log.status) }}</span>
+                  </td>
+                  <td>{{ log.weather_summary || '—' }}</td>
+                  <td class="activity-cell">{{ log.work_activities || 'No activities recorded' }}</td>
+                  <td class="num mono">{{ log.labour_count ?? 0 }}</td>
+                  <td class="num">
+                    <a class="row-link" [routerLink]="['/field/logs', log.id]">Open →</a>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="empty-row">No daily reports recorded for this view.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+
+    <nav class="quick-nav" aria-label="Operations quick links">
+      <span>Go to</span>
+      <a routerLink="/tasks">Tasks</a>
+      <a routerLink="/commitments">Commitments</a>
+      <a routerLink="/invoices">Invoices</a>
+      <a routerLink="/quality">Quality</a>
+      <a routerLink="/documents">Documents</a>
+      <a routerLink="/drawings">Drawings</a>
+      <a routerLink="/field">Field</a>
+      <a routerLink="/reports">Reports</a>
+    </nav>
+  }
+</section>

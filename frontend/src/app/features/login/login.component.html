@@ -1,4 +1,4 @@
-<div class="login-page">
+﻿<div class="login-page">
   <section class="visual">
     <div class="visual-inner">
       <header class="visual-header">
@@ -22,6 +22,9 @@
         <div class="frame scene-frame">
           <sf-site-scene [showTags]="true"></sf-site-scene>
         </div>
+        <div class="frame blueprint-frame">
+          <sf-auth-canvas></sf-auth-canvas>
+        </div>
         <figcaption>
           <span><strong>Visualize</strong> progress, risk and site activity in an interactive 3D command view. Drag to orbit, zoom to inspect.</span>
         </figcaption>
@@ -39,66 +42,122 @@
   <section class="form-side">
     <div class="form-wrap">
       <div class="form-card">
-        <p class="eyebrow">{{ mfaStep() ? 'Two-factor authentication' : 'Welcome back' }}</p>
-        <h2>{{ mfaStep() ? 'Enter your code' : 'Sign in to SiteForge' }}</h2>
-        <p class="lede">
-          @if (mfaStep()) {
-            Open your authenticator app and enter the six-digit code for your account.
+        @if (forgotMode()) {
+          <p class="eyebrow">Password reset</p>
+          <h2>Reset your password</h2>
+          @if (resetSent()) {
+            <p class="lede">If the account exists, a reset link has been sent to your email.</p>
+            <button class="secondary" type="button" (click)="backToLogin()">Back to sign in</button>
           } @else {
-            Use your workspace credentials to continue.
+            <p class="lede">Enter your email address and we will send you a reset link.</p>
+            <form (submit)="submitReset(resetEmailInput.value); $event.preventDefault()">
+              <label>
+                <span>Email address</span>
+                <input
+                  #resetEmailInput
+                  type="email"
+                  name="email"
+                  autocomplete="username"
+                  placeholder="you@company.com"
+                  [value]="resetEmail()"
+                  (input)="resetEmail.set($any($event.target).value)"
+                />
+              </label>
+              @if (error()) {
+                <div class="alert" role="alert">{{ error() }}</div>
+              }
+              <button class="primary" type="submit" [disabled]="loading()">
+                {{ loading() ? 'Sending…' : 'Send reset link' }}
+              </button>
+            </form>
+            <button class="secondary" type="button" (click)="backToLogin()">Back to sign in</button>
           }
-        </p>
-
-        @if (!mfaStep()) {
-          <form (submit)="submit(emailInput.value, passwordInput.value); $event.preventDefault()">
-            <label>
-              <span>Email address</span>
-              <input #emailInput type="email" name="email" autocomplete="username" placeholder="you@company.com" />
-            </label>
-            <label>
-              <span>Password</span>
-              <input
-                #passwordInput
-                type="password"
-                name="password"
-                autocomplete="current-password"
-                placeholder="••••••••"
-              />
-            </label>
-            @if (error()) {
-              <div class="alert" role="alert">{{ error() }}</div>
-            }
-            <button class="primary" type="submit" [disabled]="loading()">
-              {{ loading() ? 'Signing in…' : 'Sign in' }}
-            </button>
-          </form>
         } @else {
-          <form (submit)="verify(codeInput.value); $event.preventDefault()">
-            <label>
-              <span>Authenticator code</span>
-              <input
-                #codeInput
-                type="text"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                maxlength="12"
-                placeholder="000000"
-                class="code"
-              />
-            </label>
-            @if (error()) {
-              <div class="alert" role="alert">{{ error() }}</div>
+          <p class="eyebrow">{{ mfaStep() ? 'Two-factor authentication' : 'Welcome back' }}</p>
+          <h2>{{ mfaStep() ? 'Enter your code' : 'Sign in to SiteForge' }}</h2>
+          <p class="lede">
+            @if (mfaStep()) {
+              Open your authenticator app and enter the six-digit code for your account.
+            } @else {
+              Use your workspace credentials to continue.
             }
-            <button class="primary" type="submit" [disabled]="loading()">
-              {{ loading() ? 'Verifying…' : 'Verify and continue' }}
-            </button>
-            <button class="secondary" type="button" (click)="back()">Back to sign in</button>
-          </form>
+          </p>
+
+          @if (!mfaStep()) {
+            <form (submit)="submit(emailInput.value, passwordInput.value); $event.preventDefault()">
+              <label>
+                <span>Email address</span>
+                <input #emailInput type="email" name="email" autocomplete="username" placeholder="you@company.com" />
+              </label>
+              <label>
+                <span>Password</span>
+                <input
+                  #passwordInput
+                  type="password"
+                  name="password"
+                  autocomplete="current-password"
+                  placeholder="••••••••"
+                />
+              </label>
+              <div class="actions-row">
+                <button class="link-btn" type="button" (click)="openForgot()">Forgot password?</button>
+              </div>
+              @if (error()) {
+                <div class="alert" role="alert">{{ error() }}</div>
+              }
+              <button class="primary" type="submit" [disabled]="loading() || (turnstile.enabled() && !turnstile.ready())">
+                {{ loading() ? 'Signing in…' : 'Sign in' }}
+              </button>
+            </form>
+
+            @if (cloudflareAccessEnabled) {
+              <div class="divider"><span>or</span></div>
+              <button class="cloudflare" type="button" (click)="cloudflareAccess()" [disabled]="loading()">
+                <span class="cloudflare-mark" aria-hidden="true">CF</span>
+                Sign in with Cloudflare Access
+              </button>
+            }
+            <p class="signup-prompt">
+              New to SiteForge? <a routerLink="/signup">Create an account</a>
+            </p>
+          } @else {
+            <form (submit)="verify(codeInput.value); $event.preventDefault()">
+              <label>
+                <span>Authenticator code</span>
+                <input
+                  #codeInput
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  maxlength="12"
+                  placeholder="000000"
+                  class="code"
+                />
+              </label>
+              @if (error()) {
+                <div class="alert" role="alert">{{ error() }}</div>
+              }
+              <button class="primary" type="submit" [disabled]="loading()">
+                {{ loading() ? 'Verifying…' : 'Verify and continue' }}
+              </button>
+              <button class="secondary" type="button" (click)="back()">Back to sign in</button>
+            </form>
+          }
+
+          <div class="demo">
+            <strong>Demo workspace</strong>
+            <span>owner@demo.siteforge.test · DemoPass123!</span>
+          </div>
         }
 
-        <div class="demo">
-          <strong>Demo workspace</strong>
-          <span>owner@demo.siteforge.test · DemoPass123!</span>
+        <div class="turnstile-slot" [class.is-hidden]="mfaStep() || forgotMode()">
+          <div #turnstileContainer class="turnstile-widget"></div>
+          @if (turnstile.enabled() && !turnstile.ready() && !turnstile.failed()) {
+            <p class="verification-note">Checking security verification…</p>
+          }
+          @if (turnstile.failed()) {
+            <p class="field-error">Security verification could not load. Please refresh and try again.</p>
+          }
         </div>
       </div>
 

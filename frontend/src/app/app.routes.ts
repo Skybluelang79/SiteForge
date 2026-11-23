@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router';
+﻿import { Routes } from '@angular/router';
 
 import { authGuard } from './core/auth.guard';
 import { RESOURCE_PAGES } from './features/resources/resource-config';
@@ -12,6 +12,8 @@ const resourceRoutes: Routes = Object.entries(RESOURCE_PAGES).map(([path, config
 
 export const routes: Routes = [
   { path: 'login', loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent) },
+  { path: 'signup', loadComponent: () => import('./features/signup/signup.component').then((m) => m.SignupComponent) },
+  { path: 'reset-password', loadComponent: () => import('./features/reset-password/reset-password.component').then((m) => m.ResetPasswordComponent) },
   {
     path: '',
     canActivate: [authGuard],
@@ -31,6 +33,11 @@ export const routes: Routes = [
         path: 'projects/:id',
         loadComponent: () =>
           import('./features/projects/project-detail.component').then((m) => m.ProjectDetailComponent),
+      },
+      {
+        path: 'operations',
+        loadComponent: () =>
+          import('./features/professional/operations-center.component').then((m) => m.OperationsCenterComponent),
       },
       {
         path: 'design/canvas',

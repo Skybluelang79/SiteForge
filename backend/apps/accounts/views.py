@@ -9,7 +9,7 @@ from django.utils import timezone
 from django_otp import devices_for_user
 from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
-from rest_framework import generics, permissions, status
+from rest_framework import exceptions, generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -19,6 +19,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.common.drf_permissions import IsOrganizationMember
 
+from .cloudflare import verify_access_assertion
 from .models import UserSession
 from .serializers import (
     LoginSerializer,
@@ -82,6 +83,43 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data)
+
+
+class CloudflareAccessView(APIView):
+    permission_classes = [permissions.AllowAny]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        assertion = (
+            request.META.get("HTTP_CF_ACCESS_JWT_ASSERTION")
+            or request.COOKIES.get("CF_Authorization")
+            or (request.data.get("assertion") if hasattr(request.data, "get") else None)
+        )
+        if not assertion:
+            raise exceptions.AuthenticationFailed("Missing Cloudflare Access assertion.")
+
+        claims = verify_access_assertion(assertion)
+        email = str(claims.get("email") or "").strip().lower()
+        if not email:
+            raise exceptions.ValidationError({"assertion": "Cloudflare Access assertion has no email."})
+
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            user = User.objects.create_user(
+                email=email,
+                password=None,
+                first_name=str(claims.get("given_name") or "")[:150],
+                last_name=str(claims.get("family_name") or "")[:150],
+            )
+            user.set_unusable_password()
+            user.email_verified_at = timezone.now()
+            user.save(update_fields=["password", "email_verified_at"])
+        elif not user.email_verified_at:
+            user.email_verified_at = timezone.now()
+            user.save(update_fields=["email_verified_at"])
+        if not user.is_active:
+            raise exceptions.AuthenticationFailed("Account is inactive.")
+        return Response(_tokens_for_user(user, request), status=status.HTTP_200_OK)
 
 
 class RefreshView(TokenRefreshView):

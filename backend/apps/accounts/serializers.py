@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .cloudflare import verify_turnstile
 from .models import PasswordResetToken, UserSession
 
 User = get_user_model()
@@ -40,12 +41,18 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
+    turnstile_token = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ["email", "first_name", "last_name", "password", "password_confirm"]
+        fields = [
+            "email", "first_name", "last_name", "password", "password_confirm", "turnstile_token",
+        ]
 
     def validate(self, attrs):
+        request = self.context.get("request")
+        remoteip = request.META.get("REMOTE_ADDR") if request else None
+        verify_turnstile(attrs.pop("turnstile_token", None), remoteip)
         if attrs["password"] != attrs.pop("password_confirm"):
             raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
         return attrs
@@ -58,8 +65,12 @@ class LoginSerializer(TokenObtainPairSerializer):
     """Email + password login. Returns MFA challenge when MFA is enabled."""
 
     username_field = "email"
+    turnstile_token = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     def validate(self, attrs):
+        request = self.context.get("request")
+        remoteip = request.META.get("REMOTE_ADDR") if request else None
+        verify_turnstile(attrs.pop("turnstile_token", None), remoteip)
         data = super().validate(attrs)
         user = self.user
         if user.mfa_enabled:

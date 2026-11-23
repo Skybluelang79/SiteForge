@@ -15,6 +15,72 @@
         value: "False"
       - key: DJANGO_TRUST_PROXY_HEADERS
         value: "True"
+      - key: READINESS_REQUIRE_REDIS
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SITE_URL
+        sync: false
+  - type: worker
+    name: siteforge-worker
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    dockerCommand: celery -A config worker -l info
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.0"
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SITE_URL
+        sync: false
+  - type: worker
+    name: siteforge-beat
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    dockerCommand: celery -A config beat -l info
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.0"
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DJANGO_DEBUG
+        value: "False"
       - key: DJANGO_ALLOWED_HOSTS
         sync: false
       - key: DATABASE_URL
