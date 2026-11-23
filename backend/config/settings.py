@@ -364,6 +364,14 @@ SPECTACULAR_SETTINGS = {
 # CORS / CSRF
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = list(env("CORS_ALLOWED_ORIGINS"))
+CORS_ALLOWED_ORIGIN_REGEXES = []
+if env("RENDER", default="").lower() in {"1", "true", "yes", "on"}:
+    CORS_ALLOWED_ORIGIN_REGEXES.append(r"^https://siteforge-web-[a-z0-9]+\.onrender\.com$")
+for _origin in (env("FRONTEND_URL", default=""), env("SITEFORGE_WEB_URL", default="")):
+    if _origin.startswith(("http://", "https://")):
+        _origin = _origin.rstrip("/")
+        if _origin not in CORS_ALLOWED_ORIGINS:
+            CORS_ALLOWED_ORIGINS.append(_origin)
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "X-Organization-Id",
