@@ -91,13 +91,24 @@
               </label>
               <label>
                 <span>Password</span>
-                <input
-                  #passwordInput
-                  type="password"
-                  name="password"
-                  autocomplete="current-password"
-                  placeholder="••••••••"
-                />
+                <span class="password-field">
+                  <input
+                    #passwordInput
+                    [type]="showPassword() ? 'text' : 'password'"
+                    name="password"
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    class="password-toggle"
+                    type="button"
+                    [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                    [attr.aria-pressed]="showPassword()"
+                    (click)="togglePassword()"
+                  >
+                    {{ showPassword() ? 'Hide' : 'Show' }}
+                  </button>
+                </span>
               </label>
               <div class="actions-row">
                 <button class="link-btn" type="button" (click)="openForgot()">Forgot password?</button>

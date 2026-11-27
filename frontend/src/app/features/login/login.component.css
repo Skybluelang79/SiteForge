@@ -464,6 +464,38 @@ button.secondary {
   text-decoration: underline;
 }
 
+.password-field {
+  position: relative;
+  display: block;
+  margin-bottom: 0;
+}
+
+.password-field input {
+  padding-right: 74px;
+}
+
+button.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: auto;
+  margin: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+button.password-toggle:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
 button.cloudflare {
   display: flex;
   align-items: center;

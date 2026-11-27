@@ -29,12 +29,17 @@ export class LoginComponent implements AfterViewInit {
   readonly forgotMode = signal(false);
   readonly resetEmail = signal('');
   readonly resetSent = signal(false);
+  readonly showPassword = signal(false);
 
   @ViewChild('turnstileContainer', { static: true })
   private turnstileContainer?: ElementRef<HTMLDivElement>;
 
   ngAfterViewInit(): void {
     this.turnstile.render(this.turnstileContainer?.nativeElement ?? null);
+  }
+
+  togglePassword(): void {
+    this.showPassword.update((visible) => !visible);
   }
 
   submit(email: string, password: string): void {
