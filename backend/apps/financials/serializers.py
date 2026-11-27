@@ -19,6 +19,12 @@ from .models import (
 )
 
 
+def validate_non_negative(value, field_name):
+    if value is not None and value < 0:
+        raise serializers.ValidationError({field_name: "Must be zero or greater."})
+    return value
+
+
 class CostCodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = CostCode
@@ -80,7 +86,9 @@ class BudgetSerializer(serializers.ModelSerializer):
             "approved_by", "approved_at", "created_by", "lines", "total_budgeted",
             "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "approved_by", "approved_at", "created_by", "created_at", "updated_at"]
+        read_only_fields = [
+            "id", "status", "approved_by", "approved_at", "created_by", "created_at", "updated_at",
+        ]
 
     def get_total_budgeted(self, obj):
         return sum((line.budgeted_amount for line in obj.lines.all()), 0)
@@ -120,7 +128,7 @@ class CommitmentSerializer(serializers.ModelSerializer):
             "open_balance", "lines", "created_at", "updated_at",
         ]
         read_only_fields = [
-            "id", "approved_by", "approved_at", "created_by", "retention_amount",
+            "id", "status", "approved_by", "approved_at", "created_by", "retention_amount",
             "open_balance", "created_at", "updated_at",
         ]
 
@@ -167,7 +175,8 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             "approved_by", "created_by", "lines", "created_at", "updated_at",
         ]
         read_only_fields = [
-            "id", "total_amount", "approved_by", "created_by", "created_at", "updated_at",
+            "id", "status", "subtotal", "total_amount", "approved_by", "created_by",
+            "created_at", "updated_at",
         ]
 
     def validate(self, attrs):
@@ -179,6 +188,9 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
                 raise serializers.ValidationError({"number": "This purchase order number exists."})
+        for field_name in ("tax_amount", "shipping_amount"):
+            if field_name in attrs:
+                validate_non_negative(attrs[field_name], field_name)
         return attrs
 
 
@@ -214,8 +226,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "created_by", "lines", "created_at", "updated_at",
         ]
         read_only_fields = [
-            "id", "total_amount", "net_payable", "approved_by", "approved_at",
-            "created_by", "created_at", "updated_at",
+            "id", "status", "subtotal", "paid_amount", "total_amount", "net_payable",
+            "approved_by", "approved_at", "created_by", "created_at", "updated_at",
         ]
 
     def validate(self, attrs):
@@ -227,6 +239,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
                 raise serializers.ValidationError({"number": "This invoice number exists."})
+        for field_name in ("tax_amount", "retention_amount"):
+            if field_name in attrs:
+                validate_non_negative(attrs[field_name], field_name)
         return attrs
 
 
@@ -243,7 +258,7 @@ class ChangeOrderSerializer(serializers.ModelSerializer):
             "created_at", "updated_at",
         ]
         read_only_fields = [
-            "id", "approved_by", "approved_at", "created_by", "created_at", "updated_at",
+            "id", "status", "approved_by", "approved_at", "created_by", "created_at", "updated_at",
         ]
 
     def validate(self, attrs):
@@ -255,6 +270,8 @@ class ChangeOrderSerializer(serializers.ModelSerializer):
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
                 raise serializers.ValidationError({"number": "This change order number exists."})
+        if "amount" in attrs:
+            validate_non_negative(attrs["amount"], "amount")
         return attrs
 
 
@@ -267,7 +284,7 @@ class RetentionSerializer(serializers.ModelSerializer):
             "id", "project", "commitment", "invoice", "percent", "withheld_amount",
             "released_amount", "release_date", "notes", "outstanding", "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "outstanding", "created_at", "updated_at"]
+        read_only_fields = ["id", "released_amount", "outstanding", "created_at", "updated_at"]
 
 
 class ForecastSerializer(serializers.ModelSerializer):

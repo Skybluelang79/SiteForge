@@ -230,12 +230,18 @@ class PurchaseOrder(Base):
     def __str__(self) -> str:  # pragma: no cover
         return f"PO {self.number}"
 
-    def save(self, *args, **kwargs):
+    def recalculate(self):
+        self.subtotal = sum((line.line_total for line in self.lines.all()), Decimal("0")).quantize(
+            Decimal("0.01")
+        )
         self.total_amount = (
             (self.subtotal or Decimal("0"))
             + (self.tax_amount or Decimal("0"))
             + (self.shipping_amount or Decimal("0"))
         )
+
+    def save(self, *args, **kwargs):
+        self.recalculate()
         super().save(*args, **kwargs)
 
 
@@ -287,7 +293,7 @@ class Invoice(Base):
     vendor_name = models.CharField(max_length=255, blank=True)
     period_start = models.DateField(null=True, blank=True)
     period_end = models.DateField(null=True, blank=True)
-    invoice_date = models.DateField(default=timezone.now)
+    invoice_date = models.DateField(default=timezone.localdate)
     due_date = models.DateField(null=True, blank=True, db_index=True)
     subtotal = MoneyField(default=0)
     tax_amount = MoneyField(default=0)
@@ -318,6 +324,9 @@ class Invoice(Base):
         return f"Invoice {self.number}"
 
     def recalculate(self):
+        self.subtotal = sum((line.line_total for line in self.lines.all()), Decimal("0")).quantize(
+            Decimal("0.01")
+        )
         self.total_amount = ((self.subtotal or Decimal("0")) + (self.tax_amount or Decimal("0"))).quantize(
             Decimal("0.01")
         )

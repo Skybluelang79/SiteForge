@@ -33,7 +33,19 @@ from .serializers import (
     PurchaseOrderSerializer,
     RetentionSerializer,
 )
-from .services import approve_change_order, approve_commitment, approve_invoice, approve_purchase_order
+from .services import (
+    approve_change_order,
+    approve_commitment,
+    approve_invoice,
+    approve_purchase_order,
+    issue_commitment,
+    lock_budget,
+    pay_invoice,
+    receive_purchase_order,
+    reject_change_order,
+    release_retention,
+    submit_change_order,
+)
 
 
 class CostCodeViewSet(ProjectScopedViewSet):
@@ -73,10 +85,7 @@ class BudgetViewSet(ProjectScopedViewSet):
     @action(detail=True, methods=["post"], url_path="lock")
     def lock(self, request, pk=None):
         budget = self.get_object()
-        budget.status = "locked"
-        budget.approved_by = request.user
-        budget.approved_at = __import__("django.utils.timezone", fromlist=["now"]).now()
-        budget.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
+        budget = lock_budget(budget_id=budget.id, user=request.user, request=request)
         return Response(BudgetSerializer(budget).data)
 
 
@@ -137,11 +146,7 @@ class CommitmentViewSet(ProjectScopedViewSet):
     @action(detail=True, methods=["post"], url_path="issue")
     def issue(self, request, pk=None):
         commitment = self.get_object()
-        commitment.status = "issued"
-        from django.utils import timezone
-
-        commitment.issued_date = commitment.issued_date or timezone.now().date()
-        commitment.save(update_fields=["status", "issued_date", "updated_at"])
+        commitment = issue_commitment(commitment_id=commitment.id, user=request.user, request=request)
         return Response(CommitmentSerializer(commitment).data)
 
     @action(detail=True, methods=["get", "post"], url_path="lines")
@@ -197,7 +202,14 @@ class PurchaseOrderViewSet(ProjectScopedViewSet):
         return super().get_queryset().select_related("approved_by", "created_by", "commitment").prefetch_related("lines")
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        purchase_order = serializer.save(created_by=self.request.user)
+        purchase_order.recalculate()
+        purchase_order.save(update_fields=["subtotal", "total_amount", "updated_at"])
+
+    def perform_update(self, serializer):
+        purchase_order = serializer.save()
+        purchase_order.recalculate()
+        purchase_order.save(update_fields=["subtotal", "total_amount", "updated_at"])
 
     @action(detail=True, methods=["post"], url_path="approve")
     def approve(self, request, pk=None):
@@ -208,11 +220,7 @@ class PurchaseOrderViewSet(ProjectScopedViewSet):
     @action(detail=True, methods=["post"], url_path="receive")
     def receive(self, request, pk=None):
         po = self.get_object()
-        po.status = "received"
-        from django.utils import timezone
-
-        po.received_date = po.received_date or timezone.now().date()
-        po.save(update_fields=["status", "received_date", "updated_at"])
+        po = receive_purchase_order(purchase_order_id=po.id, user=request.user, request=request)
         return Response(PurchaseOrderSerializer(po).data)
 
     @action(detail=True, methods=["get", "post"], url_path="lines")
@@ -223,6 +231,8 @@ class PurchaseOrderViewSet(ProjectScopedViewSet):
         serializer = PurchaseOrderLineSerializer(data={**request.data, "purchase_order": str(po.id)})
         serializer.is_valid(raise_exception=True)
         line = serializer.save()
+        po.recalculate()
+        po.save(update_fields=["subtotal", "total_amount", "updated_at"])
         return Response(PurchaseOrderLineSerializer(line).data, status=status.HTTP_201_CREATED)
 
 
@@ -245,7 +255,10 @@ class PurchaseOrderLineViewSet(ProjectScopedViewSet):
 
         if po is None or not self.request.user.can_access_project(po.project):
             raise PermissionDenied("You do not have access to this purchase order's project.")
-        serializer.save()
+        line = serializer.save()
+        po.recalculate()
+        po.save(update_fields=["subtotal", "total_amount", "updated_at"])
+        return line
 
 
 class InvoiceViewSet(ProjectScopedViewSet):
@@ -272,34 +285,26 @@ class InvoiceViewSet(ProjectScopedViewSet):
     def perform_create(self, serializer):
         invoice = serializer.save(created_by=self.request.user)
         invoice.recalculate()
-        invoice.save(update_fields=["total_amount", "net_payable", "updated_at"])
+        invoice.save(update_fields=["subtotal", "total_amount", "net_payable", "updated_at"])
 
     def perform_update(self, serializer):
         invoice = serializer.save()
         invoice.recalculate()
-        invoice.save(update_fields=["total_amount", "net_payable", "updated_at"])
+        invoice.save(update_fields=["subtotal", "total_amount", "net_payable", "updated_at"])
 
     @action(detail=True, methods=["post"], url_path="approve")
     def approve(self, request, pk=None):
         invoice = self.get_object()
         invoice = approve_invoice(invoice_id=invoice.id, user=request.user, request=request)
         invoice.recalculate()
-        invoice.save(update_fields=["total_amount", "net_payable", "updated_at"])
+        invoice.save(update_fields=["subtotal", "total_amount", "net_payable", "updated_at"])
         return Response(InvoiceSerializer(invoice).data)
 
     @action(detail=True, methods=["post"], url_path="pay")
     def pay(self, request, pk=None):
         invoice = self.get_object()
-        amount = request.data.get("paid_amount")
-        if amount is not None:
-            from decimal import Decimal
-
-            invoice.paid_amount = Decimal(str(amount))
-        if invoice.paid_amount >= invoice.net_payable:
-            invoice.status = "paid"
-        else:
-            invoice.status = "partially_paid"
-        invoice.save(update_fields=["paid_amount", "status", "updated_at"])
+        amount = request.data.get("amount", request.data.get("paid_amount"))
+        invoice = pay_invoice(invoice_id=invoice.id, amount=amount, user=request.user, request=request)
         return Response(InvoiceSerializer(invoice).data)
 
     @action(detail=True, methods=["get", "post"], url_path="lines")
@@ -311,7 +316,7 @@ class InvoiceViewSet(ProjectScopedViewSet):
         serializer.is_valid(raise_exception=True)
         line = serializer.save()
         invoice.recalculate()
-        invoice.save(update_fields=["total_amount", "net_payable", "updated_at"])
+        invoice.save(update_fields=["subtotal", "total_amount", "net_payable", "updated_at"])
         return Response(InvoiceLineSerializer(line).data, status=status.HTTP_201_CREATED)
 
 
@@ -336,7 +341,7 @@ class InvoiceLineViewSet(ProjectScopedViewSet):
             raise PermissionDenied("You do not have access to this invoice's project.")
         line = serializer.save()
         invoice.recalculate()
-        invoice.save(update_fields=["total_amount", "net_payable", "updated_at"])
+        invoice.save(update_fields=["subtotal", "total_amount", "net_payable", "updated_at"])
         return line
 
 
@@ -365,11 +370,7 @@ class ChangeOrderViewSet(ProjectScopedViewSet):
     @action(detail=True, methods=["post"], url_path="submit")
     def submit(self, request, pk=None):
         co = self.get_object()
-        co.status = "pending"
-        from django.utils import timezone
-
-        co.submitted_date = co.submitted_date or timezone.now().date()
-        co.save(update_fields=["status", "submitted_date", "updated_at"])
+        co = submit_change_order(change_order_id=co.id, user=request.user, request=request)
         return Response(ChangeOrderSerializer(co).data)
 
     @action(detail=True, methods=["post"], url_path="approve")
@@ -381,8 +382,7 @@ class ChangeOrderViewSet(ProjectScopedViewSet):
     @action(detail=True, methods=["post"], url_path="reject")
     def reject(self, request, pk=None):
         co = self.get_object()
-        co.status = "rejected"
-        co.save(update_fields=["status", "updated_at"])
+        co = reject_change_order(change_order_id=co.id, user=request.user, request=request)
         return Response(ChangeOrderSerializer(co).data)
 
 
@@ -405,17 +405,10 @@ class RetentionViewSet(ProjectScopedViewSet):
     @action(detail=True, methods=["post"], url_path="release")
     def release(self, request, pk=None):
         retention = self.get_object()
-        amount = request.data.get("amount")
-        from decimal import Decimal
-
-        if amount is not None:
-            retention.released_amount = (retention.released_amount or Decimal("0")) + Decimal(str(amount))
-        else:
-            retention.released_amount = retention.withheld_amount
-        from django.utils import timezone
-
-        retention.release_date = retention.release_date or timezone.now().date()
-        retention.save(update_fields=["released_amount", "release_date", "updated_at"])
+        amount = request.data.get("amount", retention.outstanding)
+        retention = release_retention(
+            retention_id=retention.id, amount=amount, user=request.user, request=request
+        )
         return Response(RetentionSerializer(retention).data)
 
 
