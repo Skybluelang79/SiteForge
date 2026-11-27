@@ -17,6 +17,8 @@
         value: "True"
       - key: READINESS_REQUIRE_REDIS
         value: "False"
+      - key: SEED_DEMO_DATA
+        value: "0"
       - key: DJANGO_ALLOWED_HOSTS
         sync: false
       - key: DATABASE_URL
@@ -45,6 +47,8 @@
     envVars:
       - key: PYTHON_VERSION
         value: "3.14.0"
+      - key: RUN_MIGRATIONS
+        value: "0"
       - key: DJANGO_SECRET_KEY
         sync: false
       - key: DJANGO_DEBUG
@@ -77,6 +81,8 @@
     envVars:
       - key: PYTHON_VERSION
         value: "3.14.0"
+      - key: RUN_MIGRATIONS
+        value: "0"
       - key: DJANGO_SECRET_KEY
         sync: false
       - key: DJANGO_DEBUG
