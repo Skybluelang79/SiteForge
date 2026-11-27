@@ -19,6 +19,18 @@ from apps.tasks.models import Task
 from .models import ExportJob
 
 SUPPORTED_FORMATS = {"csv", "json"}
+SUPPORTED_EXPORTS = {
+    "budget_summary",
+    "cost_to_date",
+    "rfi_aging",
+    "submittal_status",
+    "task_progress",
+    "safety_log",
+    "inspections",
+    "daily_log_summary",
+    "change_order_log",
+    "drawing_register",
+}
 
 
 def _serialize(value):

@@ -2,6 +2,7 @@
 from django.db.models import Q
 from django.http import FileResponse, Http404
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from apps.common.viewsets import OrgScopedViewSet
@@ -14,6 +15,24 @@ from .serializers import (
     ReportDefinitionSerializer,
 )
 from .services import enqueue_export
+
+
+def visible_report_definitions(queryset, request):
+    membership = getattr(request, "membership", None)
+    if membership is None:
+        return queryset.none()
+    if membership.is_org_admin:
+        return queryset
+    return queryset.filter(
+        Q(visibility="organization")
+        | Q(visibility="private", created_by=request.user)
+        | Q(visibility="project", project__is_public=True)
+        | Q(
+            visibility="project",
+            project__members__user=request.user,
+            project__members__is_active=True,
+        )
+    ).distinct()
 
 
 class ReportDefinitionViewSet(OrgScopedViewSet):
@@ -32,17 +51,7 @@ class ReportDefinitionViewSet(OrgScopedViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset().select_related("project", "created_by")
-        membership = getattr(self.request, "membership", None)
-        if membership is None or membership.is_org_admin:
-            return queryset
-        return queryset.filter(
-            Q(visibility="organization")
-            | Q(created_by=self.request.user)
-            | Q(
-                project__members__user=self.request.user,
-                project__members__is_active=True,
-            )
-        ).distinct()
+        return visible_report_definitions(queryset, self.request)
 
     def perform_create(self, serializer):
         serializer.save(
@@ -98,25 +107,52 @@ class ExportJobViewSet(OrgScopedViewSet):
     }
 
     def get_queryset(self):
-        return super().get_queryset().select_related(
+        queryset = super().get_queryset().select_related(
             "project", "report_definition", "requested_by"
         )
+        membership = getattr(self.request, "membership", None)
+        if membership is None:
+            return queryset.none()
+        if membership.is_org_admin:
+            return queryset
+        user = self.request.user
+        report_visible = (
+            Q(report_definition__visibility="organization")
+            | Q(report_definition__visibility="private", report_definition__created_by=user)
+            | Q(report_definition__visibility="project", report_definition__project__is_public=True)
+            | Q(
+                report_definition__visibility="project",
+                report_definition__project__members__user=user,
+                report_definition__project__members__is_active=True,
+            )
+        )
+        project_access = (
+            Q(project__isnull=True)
+            | Q(project__is_public=True)
+            | Q(project__members__user=user, project__members__is_active=True)
+        )
+        return queryset.filter(
+            Q(requested_by=user)
+            | (Q(report_definition__isnull=False) & report_visible & project_access)
+        ).distinct()
 
     def perform_create(self, serializer):
         membership = self.request.membership
-        project = serializer.validated_data.get("project")
-        if project is not None:
-            from rest_framework.exceptions import PermissionDenied
-
-            if project.organization_id != membership.organization_id:
-                raise PermissionDenied("Project belongs to another organization.")
-            if not self.request.user.can_access_project(project):
-                raise PermissionDenied("You do not have access to this project.")
         job = serializer.save(
             organization=membership.organization,
             requested_by=self.request.user,
         )
         enqueue_export(job)
+
+    def perform_destroy(self, instance):
+        membership = getattr(self.request, "membership", None)
+        if (
+            membership is not None
+            and not membership.is_org_admin
+            and instance.requested_by_id != self.request.user.id
+        ):
+            raise PermissionDenied("You can only delete your own exports.")
+        super().perform_destroy(instance)
 
     @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, pk=None):
